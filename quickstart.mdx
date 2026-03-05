@@ -1,80 +1,362 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get started with Kanban CLI in minutes—learn TUI and CLI modes with real examples
 ---
 
-## Get started in three steps
+# Quick Start Guide
 
-Get your documentation site running locally and make your first customization.
+This guide will help you get up and running with Kanban CLI in minutes. We'll cover both the TUI (Terminal User Interface) and CLI modes.
 
-### Step 1: Set up your local environment
+## TUI Mode (Interactive)
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+The TUI provides a visual, keyboard-driven interface for managing your boards.
 
-### Step 2: Deploy your changes
+<Steps>
+  <Step title="Launch Kanban">
+    Start Kanban in TUI mode:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```bash
+    kanban                 # Launch with default/empty board
+    kanban myboard.json    # Load a specific board file
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    The interface will launch with a keyboard-driven UI. Press `?` at any time to view the help menu with all available bindings.
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Create Your First Board">
+    If this is your first time:
 
-### Step 3: Go live
+    1. Press `n` to create a new board
+    2. Enter a board name (e.g., "My Project")
+    3. Press `Enter` to activate it
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    <Tip>
+    Boards automatically come with default columns: **Todo**, **In Progress**, and **Done**. You can customize these later.
+    </Tip>
+  </Step>
 
-## Next steps
+  <Step title="Add Cards">
+    Create your first task card:
 
-Now that you have your docs running, explore these key features:
+    1. Press `n` to create a new card
+    2. Enter a card title (e.g., "Set up development environment")
+    3. Press `Enter` to save
+
+    Your card is now visible in the board!
+  </Step>
+
+  <Step title="Navigate the Interface">
+    Use vim-like keyboard shortcuts to navigate:
+
+    **Basic Navigation:**
+    - `j` / `k` - Move up/down through cards
+    - `h` / `l` - Move left/right between columns
+    - `Enter` - Open/view card details
+
+    **Card Operations:**
+    - `n` - Create new card
+    - `e` - Edit card details
+    - `r` - Rename card
+    - `d` - Archive card
+    - `c` - Toggle card as done
+    - `p` - Set priority (low, medium, high)
+
+    **Views & Search:**
+    - `V` - Toggle view mode (Flat List / Grouped / Kanban Board)
+    - `/` - Search cards
+    - `t` - Filter by sprint
+    - `D` - View archived cards
+
+    **Other:**
+    - `u` - Undo last action
+    - `U` - Redo action
+    - `y` - Copy card info to clipboard
+    - `H` / `L` - Move card left/right between columns
+    - `?` - Show help menu
+    - `q` - Quit
+
+    <Note>
+    All changes are **automatically saved** as you make them. No need to manually save!
+    </Note>
+  </Step>
+
+  <Step title="Explore Multiple Views">
+    Press `V` to cycle through view modes:
+
+    - **Flat List**: See all cards in a simple list with details
+    - **Grouped by Column**: Cards organized under their respective columns
+    - **Kanban Board**: Classic columnar board layout for visual workflow
+
+    Choose the view that works best for your current task.
+  </Step>
+
+  <Step title="Export Your Board (Optional)">
+    To save your board as a JSON file:
+
+    1. Press `x` to export
+    2. Choose a filename (e.g., `myproject.json`)
+    3. The board is now saved and can be version controlled
+
+    <Tip>
+    Board files are JSON format, making them easy to version control with git or share with your team.
+    </Tip>
+  </Step>
+</Steps>
+
+## CLI Mode (Scriptable)
+
+The CLI provides programmatic access to your boards for automation and scripting.
+
+<Steps>
+  <Step title="Set Your Data File">
+    First, set the environment variable to specify your board file:
+
+    ```bash
+    export KANBAN_FILE=myboard.json
+    ```
+
+    <Tip>
+    Add this to your `~/.bashrc` or `~/.zshrc` to make it permanent.
+    </Tip>
+  </Step>
+
+  <Step title="Board Management">
+    Create and manage boards:
+
+    <CodeGroup>
+
+    ```bash list
+    # List all boards
+    kanban board list
+    ```
+
+    ```bash create
+    # Create a new board
+    kanban board create --name "My Project"
+    ```
+
+    ```bash get
+    # Get board details by ID
+    kanban board get <BOARD_ID>
+    ```
+
+    ```bash update
+    # Update board metadata
+    kanban board update <BOARD_ID> --name "Updated Name"
+    ```
+
+    </CodeGroup>
+
+    <Note>
+    All CLI commands output JSON for easy parsing and scripting.
+    </Note>
+  </Step>
+
+  <Step title="Card Operations">
+    Create and manage cards:
+
+    <CodeGroup>
+
+    ```bash list
+    # List all cards in a board
+    kanban card list --board-id <BOARD_ID>
+    ```
+
+    ```bash create
+    # Create a new card
+    kanban card create \
+      --board-id <BOARD_ID> \
+      --column-id <COLUMN_ID> \
+      --title "New task"
+    ```
+
+    ```bash update
+    # Update card status and priority
+    kanban card update <CARD_ID> \
+      --status done \
+      --priority high
+    ```
+
+    ```bash move
+    # Move card to another column
+    kanban card move <CARD_ID> --column-id <COLUMN_ID>
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="Sprint Planning">
+    Create and manage sprints:
+
+    <CodeGroup>
+
+    ```bash create
+    # Create a sprint
+    kanban sprint create --board-id <BOARD_ID>
+    ```
+
+    ```bash activate
+    # Activate a sprint
+    kanban sprint activate <SPRINT_ID> --duration-days 14
+    ```
+
+    ```bash assign
+    # Assign card to sprint
+    kanban card assign-sprint <CARD_ID> --sprint-id <SPRINT_ID>
+    ```
+
+    ```bash complete
+    # Complete a sprint
+    kanban sprint complete <SPRINT_ID>
+    ```
+
+    </CodeGroup>
+  </Step>
+
+  <Step title="View Full Command Reference">
+    Get help for any command:
+
+    ```bash
+    kanban --help              # Main help
+    kanban board --help        # Board commands
+    kanban card --help         # Card commands
+    kanban sprint --help       # Sprint commands
+    ```
+  </Step>
+</Steps>
+
+## Example Workflow
+
+Here's a complete example of creating a project from scratch:
+
+```bash
+# Set up environment
+export KANBAN_FILE=~/projects/webapp.json
+
+# Create a board
+BOARD_ID=$(kanban board create --name "Web App Project" | jq -r '.id')
+
+# List columns (they're auto-created)
+COLUMNS=$(kanban column list --board-id $BOARD_ID)
+TODO_ID=$(echo $COLUMNS | jq -r '.[0].id')
+
+# Create some cards
+kanban card create \
+  --board-id $BOARD_ID \
+  --column-id $TODO_ID \
+  --title "Design database schema" \
+  --priority high \
+  --points 5
+
+kanban card create \
+  --board-id $BOARD_ID \
+  --column-id $TODO_ID \
+  --title "Set up CI/CD pipeline" \
+  --priority medium \
+  --points 3
+
+# Create and activate a sprint
+SPRINT_ID=$(kanban sprint create --board-id $BOARD_ID --name "Sprint 1" | jq -r '.id')
+kanban sprint activate $SPRINT_ID --duration-days 14
+
+# Now open in TUI to start working
+kanban
+```
+
+## Terminal Output Examples
+
+When you run CLI commands, you'll see JSON output:
+
+```json
+// kanban board create --name "My Project"
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "My Project",
+  "card_prefix": "CARD",
+  "columns": [
+    {"id": "...", "name": "Todo", "position": 0},
+    {"id": "...", "name": "In Progress", "position": 1},
+    {"id": "...", "name": "Done", "position": 2}
+  ],
+  "created_at": "2026-03-05T10:30:00Z"
+}
+```
+
+```json
+// kanban card list --board-id <ID>
+[
+  {
+    "id": "card-uuid-1",
+    "title": "Design database schema",
+    "priority": "high",
+    "points": 5,
+    "status": "todo",
+    "column_id": "column-uuid-1",
+    "created_at": "2026-03-05T10:31:00Z"
+  }
+]
+```
+
+## Pro Tips
 
 <CardGroup cols={2}>
+  <Card title="Use jq for Parsing" icon="code">
+    Pipe CLI output through `jq` to extract specific fields:
+    
+    ```bash
+    kanban card list --board-id $ID | jq -r '.[].title'
+    ```
+  </Card>
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+  <Card title="Version Control Your Boards" icon="git-alt">
+    Store board JSON files in git to track project history:
+    
+    ```bash
+    git add myproject.json
+    git commit -m "Update sprint 1 tasks"
+    ```
+  </Card>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+  <Card title="Learn Keyboard Shortcuts" icon="keyboard">
+    Press `?` in the TUI to see context-aware keyboard shortcuts for your current view.
+  </Card>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Use Multiple Boards" icon="table-cells">
+    Keep separate boards for different projects by using different JSON files:
+    
+    ```bash
+    kanban ~/work/project-a.json
+    kanban ~/personal/todos.json
+    ```
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Multi-Instance Support
+
+<Info>
+Kanban supports running multiple instances on the same board file:
+
+- **Real-time file watching** detects changes from other instances
+- **Automatic reload** when no local changes exist
+- **User prompt** when local edits conflict with external changes
+- **Last-write-wins** conflict resolution for concurrent edits
+</Info>
+
+## Next Steps
+
+Now that you know the basics, explore advanced features:
+
+<CardGroup cols={2}>
+  <Card title="Core Concepts" icon="wand-magic-sparkles" href="/concepts/boards-and-columns">
+    Learn about boards, cards, sprints, and dependencies
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/overview">
+    Complete CLI command reference with all options
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/guide/keyboard-shortcuts">
+    Full list of keyboard shortcuts and bindings
+  </Card>
+  <Card title="Configuration" icon="gear" href="/advanced/configuration">
+    Customize Kanban with environment variables and settings
+  </Card>
+</CardGroup>

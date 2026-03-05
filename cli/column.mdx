@@ -1,0 +1,273 @@
+---
+title: Column Commands
+description: Manage board columns via CLI
+---
+
+## Overview
+
+Column commands allow you to create and manage columns on kanban boards. Columns represent stages in your workflow and can have WIP (Work In Progress) limits.
+
+## Commands
+
+### Create a Column
+
+Create a new column on a board:
+
+```bash
+kanban column create --board-id <BOARD_ID> --name <NAME> [--position <POSITION>]
+```
+
+<ParamField path="--board-id" type="uuid" required>
+  The UUID of the board.
+</ParamField>
+
+<ParamField path="--name" type="string" required>
+  The name of the column.
+</ParamField>
+
+<ParamField path="--position" type="integer">
+  Position of the column (0-indexed). If not specified, the column is added at the end.
+</ParamField>
+
+#### Example
+
+```bash
+kanban column create \
+  --board-id 550e8400-e29b-41d4-a716-446655440000 \
+  --name "In Progress" \
+  --position 1
+```
+
+#### Output
+
+```json
+{
+  "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+  "board_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "In Progress",
+  "position": 1,
+  "wip_limit": null,
+  "created_at": "2024-03-05T12:00:00Z",
+  "updated_at": "2024-03-05T12:00:00Z"
+}
+```
+
+### List Columns
+
+List all columns for a board:
+
+```bash
+kanban column list --board-id <BOARD_ID>
+```
+
+<ParamField path="--board-id" type="uuid" required>
+  The UUID of the board.
+</ParamField>
+
+#### Example
+
+```bash
+kanban column list --board-id 550e8400-e29b-41d4-a716-446655440000
+```
+
+#### Output
+
+```json
+[
+  {
+    "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+    "board_id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Todo",
+    "position": 0,
+    "wip_limit": null,
+    "created_at": "2024-03-05T12:00:00Z",
+    "updated_at": "2024-03-05T12:00:00Z"
+  },
+  {
+    "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "board_id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "In Progress",
+    "position": 1,
+    "wip_limit": 3,
+    "created_at": "2024-03-05T12:00:00Z",
+    "updated_at": "2024-03-05T12:00:00Z"
+  }
+]
+```
+
+### Get a Column by ID
+
+Retrieve a specific column:
+
+```bash
+kanban column get <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the column.
+</ParamField>
+
+#### Example
+
+```bash
+kanban column get 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+```
+
+### Update a Column
+
+Update column properties:
+
+```bash
+kanban column update <ID> [OPTIONS]
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the column to update.
+</ParamField>
+
+<ParamField path="--name" type="string">
+  Update the column name.
+</ParamField>
+
+<ParamField path="--position" type="integer">
+  Update the column position.
+</ParamField>
+
+<ParamField path="--wip-limit" type="integer">
+  Set or update the WIP (Work In Progress) limit. This is the maximum number of cards allowed in this column.
+</ParamField>
+
+<ParamField path="--clear-wip-limit" type="flag">
+  Remove the WIP limit from the column.
+</ParamField>
+
+#### Examples
+
+```bash
+# Update column name and WIP limit
+kanban column update 6ba7b810-9dad-11d1-80b4-00c04fd430c8 \
+  --name "Work In Progress" \
+  --wip-limit 5
+
+# Remove WIP limit
+kanban column update 6ba7b810-9dad-11d1-80b4-00c04fd430c8 --clear-wip-limit
+
+# Change position
+kanban column update 6ba7b810-9dad-11d1-80b4-00c04fd430c8 --position 2
+```
+
+### Delete a Column
+
+Permanently delete a column:
+
+```bash
+kanban column delete <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the column to delete.
+</ParamField>
+
+<Warning>
+  Deleting a column will also affect all cards in that column. Make sure to move or archive cards before deleting.
+</Warning>
+
+#### Example
+
+```bash
+kanban column delete 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+```
+
+### Reorder a Column
+
+Change the position of a column:
+
+```bash
+kanban column reorder <ID> --position <POSITION>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the column to reorder.
+</ParamField>
+
+<ParamField path="--position" type="integer" required>
+  The new position (0-indexed).
+</ParamField>
+
+#### Example
+
+```bash
+# Move column to the first position
+kanban column reorder 6ba7b810-9dad-11d1-80b4-00c04fd430c8 --position 0
+```
+
+## WIP Limits
+
+Work In Progress (WIP) limits help teams focus by restricting the number of cards in a column. When a column reaches its WIP limit, no more cards can be moved into it until some are moved out.
+
+### Setting a WIP Limit
+
+```bash
+kanban column update <COLUMN_ID> --wip-limit 3
+```
+
+This sets a maximum of 3 cards for the column.
+
+### Removing a WIP Limit
+
+```bash
+kanban column update <COLUMN_ID> --clear-wip-limit
+```
+
+### Checking WIP Limit Status
+
+```bash
+# Get column details including current card count
+kanban column get <COLUMN_ID>
+
+# Count cards in column
+kanban card list --column-id <COLUMN_ID> | jq 'length'
+```
+
+## Common Workflows
+
+### Create a Standard Workflow
+
+```bash
+# Get board ID
+BOARD_ID="550e8400-e29b-41d4-a716-446655440000"
+
+# Create columns
+kanban column create --board-id $BOARD_ID --name "Backlog" --position 0
+kanban column create --board-id $BOARD_ID --name "Todo" --position 1
+kanban column create --board-id $BOARD_ID --name "In Progress" --position 2
+kanban column create --board-id $BOARD_ID --name "Review" --position 3
+kanban column create --board-id $BOARD_ID --name "Done" --position 4
+
+# Set WIP limit on "In Progress"
+IN_PROGRESS_ID=$(kanban column list --board-id $BOARD_ID | jq -r '.[] | select(.name == "In Progress") | .id')
+kanban column update $IN_PROGRESS_ID --wip-limit 3
+```
+
+### Reorder All Columns
+
+```bash
+# List columns and manually reorder
+kanban column list --board-id $BOARD_ID | jq -r '.[] | .id' | \
+while read -r idx col_id; do
+  kanban column reorder $col_id --position $idx
+  idx=$((idx + 1))
+done
+```
+
+### View Column Statistics
+
+```bash
+# Get card count for each column
+kanban column list --board-id $BOARD_ID | jq -r '.[] | .id' | \
+while read col_id; do
+  count=$(kanban card list --column-id $col_id | jq 'length')
+  name=$(kanban column get $col_id | jq -r '.name')
+  echo "$name: $count cards"
+done
+```

@@ -1,0 +1,330 @@
+---
+title: Cards
+description: Card structure, metadata, priorities, and operations in Kanban CLI
+---
+
+## Overview
+
+Cards (also called tasks) are the fundamental work items in Kanban CLI. Each card represents a unit of work with rich metadata including priority, status, story points, due dates, and more.
+
+## Card Structure
+
+Cards are defined by the `Card` struct:
+
+```rust
+pub struct Card {
+    pub id: CardId,
+    pub column_id: ColumnId,
+    pub title: String,
+    pub description: Option<String>,
+    pub priority: CardPriority,
+    pub status: CardStatus,
+    pub position: i32,
+    pub due_date: Option<DateTime<Utc>>,
+    pub points: Option<u8>,
+    pub card_number: u32,
+    pub sprint_id: Option<Uuid>,
+    pub assigned_prefix: Option<String>,
+    pub card_prefix: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub sprint_logs: Vec<SprintLog>,
+}
+```
+
+## Priority Levels
+
+Cards support four priority levels:
+
+```rust
+pub enum CardPriority {
+    Low,       // Low priority work
+    Medium,    // Default priority
+    High,      // Important work
+    Critical,  // Urgent work requiring immediate attention
+}
+```
+
+<Tip>
+  Use priorities to focus on what matters most. Critical items should be rare - overuse dilutes their meaning.
+</Tip>
+
+### Setting Priority
+
+```rust
+card.update_priority(CardPriority::High);
+```
+
+## Status Values
+
+Card status reflects the current state of work:
+
+```rust
+pub enum CardStatus {
+    Todo,        // Not started
+    InProgress,  // Actively being worked on
+    Blocked,     // Waiting on external dependency
+    Done,        // Completed
+}
+```
+
+### Status Transitions
+
+```rust
+// Update status
+card.update_status(CardStatus::InProgress);
+
+// Status transitions automatically update timestamps
+card.update_status(CardStatus::Done);
+assert!(card.completed_at.is_some());
+
+// Moving back from Done clears completion timestamp
+card.update_status(CardStatus::InProgress);
+assert!(card.completed_at.is_none());
+```
+
+<Note>
+  The `completed_at` timestamp is automatically set when a card transitions to `Done` status and cleared when moved back.
+</Note>
+
+## Story Points
+
+Cards can be assigned story points (1-5) for estimation:
+
+```rust
+card.set_points(Some(3)); // 3-point card
+card.set_points(None);    // Remove points
+```
+
+Story points are displayed with color-coding in the UI:
+- 1 point: Small task
+- 2-3 points: Medium task
+- 4-5 points: Large task
+
+<Info>
+  Story points help with sprint planning and velocity tracking. They represent complexity, not time.
+</Info>
+
+## Due Dates
+
+Track deadlines with due dates:
+
+```rust
+use chrono::Utc;
+
+// Set due date
+let due = Utc::now() + chrono::Duration::days(7);
+card.set_due_date(Some(due));
+
+// Clear due date
+card.set_due_date(None);
+```
+
+## Card Numbering and Prefixes
+
+Each card gets an auto-incremented number scoped to its prefix:
+
+```rust
+// Create card with prefix
+let card1 = Card::new(&mut board, column_id, "Fix bug".to_string(), 0, "bug");
+assert_eq!(card1.card_number, 1); // bug-1
+
+let card2 = Card::new(&mut board, column_id, "Add feature".to_string(), 1, "feat");
+assert_eq!(card2.card_number, 1); // feat-1
+
+let card3 = Card::new(&mut board, column_id, "Fix another bug".to_string(), 2, "bug");
+assert_eq!(card3.card_number, 2); // bug-2
+```
+
+### Prefix Hierarchy
+
+Card prefixes follow a hierarchy: **Card** > **Sprint** > **Board** > **Default**
+
+```rust
+// Card-level override (highest priority)
+card.set_card_prefix(Some("hotfix".to_string()));
+
+// Sprint-level override
+sprint.update_card_prefix(Some("feat".to_string()));
+
+// Board-level default
+board.update_card_prefix(Some("task".to_string()));
+
+// System default: "task"
+```
+
+## Git Branch Names
+
+Cards can generate git branch names based on their metadata:
+
+```rust
+let branch = card.branch_name(&board, &sprints, "task");
+// Example: "feat-42/implement-user-auth"
+
+let command = card.git_checkout_command(&board, &sprints, "task");
+// Example: "git checkout -b feat-42/implement-user-auth"
+```
+
+Branch names are automatically:
+- Converted to kebab-case
+- Truncated to 250 characters
+- Sanitized to contain only alphanumeric, hyphens, and underscores
+
+## Card Operations
+
+### Creating Cards
+
+```rust
+let card = Card::new(
+    &mut board,
+    column_id,
+    "Implement authentication".to_string(),
+    0,        // position
+    "feat"    // prefix
+);
+```
+
+### Editing Cards
+
+```rust
+// Update title and description
+card.update_title("New title".to_string());
+card.update_description(Some("Detailed description".to_string()));
+
+// Update metadata
+card.update_priority(CardPriority::High);
+card.set_points(Some(5));
+card.set_due_date(Some(Utc::now() + Duration::days(7)));
+```
+
+### Moving Cards
+
+```rust
+// Move to different column
+card.move_to_column(new_column_id, new_position);
+
+// Position determines display order within column
+```
+
+### Partial Updates
+
+For atomic multi-field updates:
+
+```rust
+let updates = CardUpdate {
+    title: Some("Updated title".to_string()),
+    priority: Some(CardPriority::Critical),
+    status: Some(CardStatus::InProgress),
+    points: FieldUpdate::Set(3),
+    due_date: FieldUpdate::Set(Utc::now() + Duration::days(3)),
+    ..Default::default()
+};
+card.update(updates);
+```
+
+### Archiving Cards
+
+Cards can be archived (soft delete) rather than permanently deleted:
+
+```rust
+// Archive a card
+archived_cards.push(card);
+
+// Restore from archive
+let restored_card = archived_cards.remove(index);
+active_cards.push(restored_card);
+```
+
+<Warning>
+  Archiving preserves card history. Permanent deletion is irreversible and removes all metadata and relationships.
+</Warning>
+
+## Sprint Assignment
+
+Cards can be assigned to sprints for planning:
+
+```rust
+card.assign_to_sprint(
+    sprint_id,
+    sprint_number,
+    Some("Sprint 1".to_string()),
+    "Active".to_string()
+);
+
+// View sprint history
+for log in card.get_sprint_history() {
+    println!("Sprint {}: {} - {}", 
+        log.sprint_number, 
+        log.started_at, 
+        log.ended_at.unwrap_or("ongoing")
+    );
+}
+```
+
+<Info>
+  Cards maintain a complete history of all sprints they've been assigned to, even after sprint completion.
+</Info>
+
+## Tags and Categorization
+
+Cards can be organized using:
+
+<CardGroup cols={2}>
+  <Card title="Prefixes" icon="tag">
+    Use different prefixes (bug, feat, task) to categorize work types
+  </Card>
+  <Card title="Priorities" icon="exclamation">
+    Four-level priority system for importance
+  </Card>
+  <Card title="Status" icon="circle-check">
+    Track progress through workflow stages
+  </Card>
+  <Card title="Sprints" icon="calendar">
+    Group cards into time-boxed iterations
+  </Card>
+</CardGroup>
+
+## Completion Tracking
+
+Cards track completion with automatic timestamping:
+
+```rust
+// Check if completed
+if card.is_completed() {
+    println!("Completed at: {:?}", card.completed_at);
+}
+
+// Completion is based on status
+assert_eq!(card.status, CardStatus::Done);
+```
+
+## Creation Options
+
+When creating cards, you can specify optional metadata:
+
+```rust
+let options = CreateCardOptions {
+    description: Some("Detailed description".to_string()),
+    priority: Some(CardPriority::High),
+    points: Some(3),
+    due_date: Some(Utc::now() + Duration::days(7)),
+};
+```
+
+## Related Concepts
+
+<CardGroup cols={2}>
+  <Card title="Boards and Columns" icon="table-columns" href="/concepts/boards-and-columns">
+    Understand where cards live
+  </Card>
+  <Card title="Sprints" icon="calendar" href="/concepts/sprints">
+    Organize cards into sprints
+  </Card>
+  <Card title="Dependencies" icon="diagram-project" href="/concepts/dependencies">
+    Track blocking relationships
+  </Card>
+  <Card title="Undo/Redo" icon="rotate-left" href="/concepts/undo-redo">
+    Revert card operations
+  </Card>
+</CardGroup>

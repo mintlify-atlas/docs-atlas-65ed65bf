@@ -1,0 +1,345 @@
+---
+title: Persistence
+description: JSON storage, atomic writes, and data migration
+icon: floppy-disk
+---
+
+## Overview
+
+Kanban CLI uses a **JSON-based persistence layer** with crash-safe atomic writes, automatic versioning, and migration support. All data is stored in a single human-readable JSON file.
+
+## File Format
+
+### Current Format (V2)
+
+The V2 format wraps the data payload in an envelope with metadata:
+
+```json
+{
+  "version": 2,
+  "metadata": {
+    "instance_id": "550e8400-e29b-41d4-a716-446655440000",
+    "saved_at": "2026-03-05T10:30:00Z"
+  },
+  "data": {
+    "boards": [...],
+    "columns": [...],
+    "cards": [...],
+    "archived_cards": [...],
+    "sprints": [...],
+    "dependency_graph": {...}
+  }
+}
+```
+
+**Metadata Fields:**
+- `instance_id`: UUID identifying the application instance that wrote this file
+- `saved_at`: ISO 8601 timestamp of when the file was saved
+
+<Info>
+The `instance_id` is used for [conflict detection](/advanced/multi-instance) when multiple instances edit the same file.
+</Info>
+
+### Legacy Format (V1)
+
+The V1 format stored data at the root level without versioning:
+
+```json
+{
+  "boards": [...],
+  "columns": [...],
+  "cards": [...],
+  "sprints": [...]
+}
+```
+
+<Note>
+V1 files are automatically migrated to V2 on first load with backup creation.
+</Note>
+
+## Atomic Writes
+
+Kanban uses a **write-to-temp-file → atomic-rename** pattern to prevent data corruption:
+
+```rust atomic_writer.rs
+pub async fn write_atomic(path: &Path, data: &[u8]) -> KanbanResult<()> {
+    // Create temp file in same directory to ensure same filesystem
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let temp_file = tempfile::NamedTempFile::new_in(parent)?;
+    let temp_path = temp_file.path().to_path_buf();
+
+    // Write to temp file
+    tokio::fs::write(&temp_path, data).await?;
+
+    // Atomic rename (atomic on POSIX systems)
+    fs::rename(&temp_path, path).await?;
+
+    Ok(())
+}
+```
+
+**Why Atomic Writes?**
+1. **Crash Safety**: If the process crashes mid-write, the original file remains intact
+2. **No Partial Writes**: The file is either fully written or unchanged
+3. **Multi-Instance Safety**: Works with file watchers to detect concurrent changes
+
+<Warning>
+Atomic renames are guaranteed on POSIX systems (Linux, macOS). On Windows, the operation is best-effort but still safer than direct writes.
+</Warning>
+
+## File Format Versioning
+
+### Version Detection
+
+Kanban automatically detects the file format version:
+
+```rust migrator.rs
+pub async fn detect_version(path: &Path) -> KanbanResult<FormatVersion> {
+    if !path.exists() {
+        return Ok(FormatVersion::V2); // Default to V2 for new files
+    }
+
+    let content = tokio::fs::read_to_string(path).await?;
+    let value: Value = serde_json::from_str(&content)?;
+
+    // V2 files have a "version" field at root level
+    if let Some(version) = value.get("version").and_then(|v| v.as_u64()) {
+        return Ok(FormatVersion::from_u32(version as u32).unwrap_or(FormatVersion::V2));
+    }
+
+    // V1 files have "boards" at root level but no version field
+    if value.get("boards").is_some() {
+        return Ok(FormatVersion::V1);
+    }
+
+    Ok(FormatVersion::V2)
+}
+```
+
+### Migration: V1 → V2
+
+The migration process is automatic and includes safety features:
+
+<Steps>
+  <Step title="Detect V1 Format">
+    On load, check if the file is in V1 format (no `version` field)
+  </Step>
+  <Step title="Create Backup">
+    Copy the original file to `{filename}.v1.backup`
+    ```bash
+    # Example
+    kanban.json → kanban.v1.backup
+    ```
+  </Step>
+  <Step title="Transform Data">
+    Wrap V1 data in V2 envelope structure with metadata
+  </Step>
+  <Step title="Write V2 File">
+    Save the migrated data to the original path
+  </Step>
+  <Step title="Verify Migration">
+    Compare migrated data with original to ensure no data loss
+  </Step>
+  <Step title="Remove Backup">
+    If verification succeeds, delete the backup file
+  </Step>
+</Steps>
+
+**Migration Code:**
+
+```rust migrator.rs
+async fn migrate_v1_to_v2(path: &Path) -> KanbanResult<()> {
+    // Read V1 file
+    let content = tokio::fs::read_to_string(path).await?;
+    let v1_data: Value = serde_json::from_str(&content)?;
+
+    // Create backup
+    let backup_path = path.with_extension("v1.backup");
+    tokio::fs::copy(path, &backup_path).await?;
+    tracing::info!("Created backup at {}", backup_path.display());
+
+    // Transform to V2 format
+    let v2_envelope = JsonEnvelope::new(v1_data.clone());
+
+    // Write V2 file
+    let json_str = v2_envelope.to_json_string()?;
+    tokio::fs::write(path, json_str).await?;
+
+    // Verify migration
+    verify_migration(path, &v1_data).await?;
+
+    // Remove backup on success
+    tokio::fs::remove_file(&backup_path).await?;
+    tracing::info!("Migration verified, backup removed");
+
+    Ok(())
+}
+```
+
+<Tip>
+From the CHANGELOG (v0.1.15):
+> **Automatic Migration**: V1 data files are automatically upgraded to V2 format on load with backup creation
+</Tip>
+
+## Backup Creation
+
+Backups are created in two scenarios:
+
+### 1. Format Migration
+
+When migrating from V1 to V2:
+- Backup path: `{original_filename}.v1.backup`
+- Automatically removed after successful verification
+- Preserved if migration fails
+
+```bash
+# Before migration
+kanban.json
+
+# During migration
+kanban.json
+kanban.v1.backup  ← Created automatically
+
+# After successful migration
+kanban.json  ← Now in V2 format
+# kanban.v1.backup removed
+```
+
+### 2. Manual Backup
+
+You can manually backup your board file:
+
+```bash
+cp kanban.json kanban.backup.json
+```
+
+Or use the export command:
+
+```bash
+kanban export --output backup-$(date +%Y%m%d).json
+```
+
+## Immediate Saving
+
+Kanban uses **immediate saving** - changes are persisted after each action:
+
+<CodeGroup>
+```rust Command Pattern
+// All mutations flow through commands
+pub trait Command: std::fmt::Debug + Send + Sync {
+    fn execute(&self, snapshot: &mut Snapshot) -> KanbanResult<()>;
+}
+```
+
+```rust State Manager
+// Execute command and save immediately
+pub async fn execute_command(&mut self, cmd: Box<dyn Command>) -> KanbanResult<()> {
+    cmd.execute(&mut self.snapshot)?;
+    self.save_if_needed().await?;
+    Ok(())
+}
+```
+</CodeGroup>
+
+**Benefits:**
+- No data loss on crashes
+- Simple recovery model
+- Consistent state between instances
+
+**Trade-offs:**
+- Slightly higher I/O overhead
+- Mitigated by debouncing (saves are delayed 100ms)
+
+## Bounded Save Queue
+
+To prevent memory exhaustion during rapid changes:
+
+<Info>
+**Queue Configuration:**
+- Maximum pending snapshots: 100
+- Saves are debounced by 100ms
+- Older saves are dropped if queue is full
+</Info>
+
+From the README:
+> **Bounded Save Queue**: Maintains a queue of up to 100 pending snapshots
+
+## Storage Implementation
+
+The persistence layer is in `crates/kanban-persistence/`:
+
+```
+kanban-persistence/
+├── store/
+│   ├── atomic_writer.rs    # Atomic write operations
+│   └── json_file_store.rs  # JSON persistence implementation
+├── migration/
+│   ├── migrator.rs          # Version detection & migration
+│   └── v1_to_v2.rs          # V1 → V2 migration logic
+├── conflict/
+│   └── detector.rs          # File metadata for conflict detection
+└── watch/
+    └── file_watcher.rs      # Real-time file monitoring
+```
+
+### PersistenceStore Trait
+
+```rust traits.rs
+#[async_trait::async_trait]
+pub trait PersistenceStore {
+    async fn save(&self, snapshot: StoreSnapshot) -> KanbanResult<PersistenceMetadata>;
+    async fn load(&self) -> KanbanResult<(StoreSnapshot, PersistenceMetadata)>;
+    async fn exists(&self) -> bool;
+    fn path(&self) -> &Path;
+}
+```
+
+### JsonFileStore Implementation
+
+```rust json_file_store.rs
+pub struct JsonFileStore {
+    path: PathBuf,
+    instance_id: Uuid,
+    last_known_metadata: Mutex<Option<FileMetadata>>,
+}
+
+impl JsonFileStore {
+    pub fn new(path: impl AsRef<Path>) -> Self {
+        Self {
+            path: path.as_ref().to_path_buf(),
+            instance_id: Uuid::new_v4(),
+            last_known_metadata: Mutex::new(None),
+        }
+    }
+}
+```
+
+## Rich Metadata
+
+Cards and boards include comprehensive metadata:
+
+**Card Metadata:**
+- `created_at` - ISO 8601 timestamp
+- `updated_at` - ISO 8601 timestamp
+- `priority` - `"low"`, `"medium"`, `"high"`
+- `story_points` - 1-5 point estimates
+- `due_date` - Optional ISO 8601 date
+- `sprint_logs` - History of sprint assignments
+- `dependencies` - Parent/child relationships
+
+**Board Metadata:**
+- `created_at` - Creation timestamp
+- `updated_at` - Last modification timestamp
+- `sprint_prefix` - Default sprint branch prefix
+- `card_prefix` - Default card prefix
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Multi-Instance Support" icon="clone" href="/advanced/multi-instance">
+    Learn how multiple instances coordinate
+  </Card>
+  <Card title="Configuration" icon="gear" href="/advanced/configuration">
+    Configure file paths and environment variables
+  </Card>
+</CardGroup>

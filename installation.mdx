@@ -1,0 +1,216 @@
+---
+title: Installation
+description: Install Kanban CLI using cargo, nix, or from source
+---
+
+# Installation
+
+Kanban CLI can be installed using multiple methods depending on your system and preferences. Choose the installation method that works best for you.
+
+## System Requirements
+
+<Info>
+**Minimum Requirements:**
+- Rust 1.70+ (for cargo installation)
+- Linux, macOS, or Windows
+- Terminal with Unicode support
+- At least 10MB of disk space
+</Info>
+
+## Installation Methods
+
+<Steps>
+  <Step title="Choose Your Installation Method">
+    Select one of the following installation methods based on your environment:
+
+    <CodeGroup>
+
+    ```bash cargo (from crates.io)
+    # Install from Rust package registry
+    cargo install kanban-cli
+    ```
+
+    ```bash nix
+    # Run directly with Nix
+    nix run github:fulsomenko/kanban
+    ```
+
+    ```bash source
+    # Build from source
+    git clone https://github.com/fulsomenko/kanban
+    cd kanban
+    cargo install --path crates/kanban-cli
+    ```
+
+    </CodeGroup>
+
+    <Tip>
+    **Recommended:** Use `cargo install kanban-cli` for the simplest installation experience if you already have Rust installed.
+    </Tip>
+  </Step>
+
+  <Step title="Verify Installation">
+    After installation, verify that Kanban is correctly installed by checking the version:
+
+    ```bash
+    kanban --version
+    ```
+
+    You should see output similar to:
+
+    ```
+    kanban 0.2.0
+    commit: abc123def
+    ```
+
+    <Note>
+    The exact version number and commit hash will vary depending on when you installed Kanban.
+    </Note>
+  </Step>
+
+  <Step title="Test the Installation">
+    Launch Kanban to ensure everything is working:
+
+    ```bash
+    kanban
+    ```
+
+    You should see the TUI interface launch. Press `?` to view the help menu, or press `q` to quit.
+  </Step>
+</Steps>
+
+## Linux Clipboard Support
+
+<Warning>
+**Linux Users:** For clipboard operations (`y`/`Y` to copy branch names) to persist after exiting, you need a clipboard manager running.
+</Warning>
+
+Kanban supports copying card information to your system clipboard, but on Linux, copied content is lost when the app exits unless you have a clipboard manager installed. This is a Linux platform limitation, not a bug.
+
+### Required Clipboard Managers
+
+<Tabs>
+  <Tab title="Wayland">
+    Install one of the following clipboard managers for Wayland:
+
+    ```bash
+    # wl-clip-persist (recommended)
+    sudo apt install wl-clip-persist  # Debian/Ubuntu
+    sudo pacman -S wl-clip-persist    # Arch Linux
+
+    # Or use alternatives:
+    # - cliphist
+    # - clipman
+    # - Your desktop environment's built-in manager
+    ```
+  </Tab>
+
+  <Tab title="X11">
+    Most X11 desktop environments include a clipboard manager by default. If you don't have one, install:
+
+    ```bash
+    # xclip or xsel
+    sudo apt install xclip             # Debian/Ubuntu
+    sudo pacman -S xclip               # Arch Linux
+    ```
+  </Tab>
+</Tabs>
+
+## Shell Completions (Optional)
+
+Generate shell completions for better command-line experience:
+
+<CodeGroup>
+
+```bash bash
+# Add to your ~/.bashrc
+kanban completions bash > ~/.local/share/bash-completion/completions/kanban
+```
+
+```bash zsh
+# Add to your ~/.zshrc
+kanban completions zsh > ~/.zfunc/_kanban
+```
+
+```bash fish
+# Add to fish completions directory
+kanban completions fish > ~/.config/fish/completions/kanban.fish
+```
+
+</CodeGroup>
+
+## Environment Variables
+
+You can configure Kanban using environment variables:
+
+| Variable | Description | Example |
+|----------|-------------|----------|
+| `KANBAN_FILE` | Default data file path | `export KANBAN_FILE=~/projects/myboard.json` |
+| `KANBAN_DEBUG_LOG` | Debug log file path | `export KANBAN_DEBUG_LOG=~/kanban-debug.log` |
+| `EDITOR` | Preferred text editor | `export EDITOR=vim` |
+
+<Tip>
+Add `export KANBAN_FILE=~/kanban.json` to your shell profile (`.bashrc`, `.zshrc`, etc.) to set a default board location.
+</Tip>
+
+## Updating Kanban
+
+To update to the latest version:
+
+<CodeGroup>
+
+```bash cargo
+# Update from crates.io
+cargo install kanban-cli --force
+```
+
+```bash nix
+# Nix always uses the latest version
+nix run github:fulsomenko/kanban
+```
+
+```bash source
+# Pull latest changes and rebuild
+cd kanban
+git pull
+cargo install --path crates/kanban-cli --force
+```
+
+</CodeGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Command not found: kanban">
+    Ensure that cargo's bin directory is in your PATH:
+
+    ```bash
+    echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+  </Accordion>
+
+  <Accordion title="Clipboard not working">
+    Install a clipboard manager for your display server (see Linux Clipboard Support section above).
+  </Accordion>
+
+  <Accordion title="Build fails with Rust version error">
+    Update your Rust toolchain:
+
+    ```bash
+    rustup update stable
+    ```
+  </Accordion>
+
+  <Accordion title="Unicode characters not displaying">
+    Ensure your terminal supports Unicode and has a font with icon support installed (e.g., Nerd Fonts).
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you have Kanban installed, learn how to use it:
+
+<Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+  Learn the basics of creating boards, adding cards, and navigating the interface
+</Card>

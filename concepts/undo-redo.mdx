@@ -1,0 +1,382 @@
+---
+title: Undo/Redo
+description: History management and reversible operations in Kanban CLI
+---
+
+## Overview
+
+Kanban CLI supports undo (`u`) and redo (`U`) operations for all state-modifying actions. The history system uses a snapshot-based approach with bounded memory to track up to 100 recent operations.
+
+## History Manager
+
+The `HistoryManager` maintains separate stacks for undo and redo:
+
+```rust
+pub struct HistoryManager {
+    /// Stack of snapshots for undo (most recent = back of deque)
+    undo_stack: VecDeque<Snapshot>,
+    
+    /// Stack of snapshots for redo (most recent = back of deque)
+    redo_stack: VecDeque<Snapshot>,
+    
+    /// Flag to prevent undo/redo operations from being added to history
+    suppress_capture: bool,
+}
+```
+
+## Bounded History
+
+History is bounded to prevent unbounded memory growth:
+
+```rust
+const MAX_HISTORY_DEPTH: usize = 100;
+
+// When adding to history, oldest entries are removed
+self.undo_stack.push_back(snapshot);
+if self.undo_stack.len() > MAX_HISTORY_DEPTH {
+    self.undo_stack.pop_front();
+}
+```
+
+<Info>
+  The 100-entry limit ensures reasonable memory usage while providing sufficient history for typical workflows.
+</Info>
+
+## Snapshot-Based Approach
+
+Each operation captures the complete state before execution:
+
+```rust
+pub struct Snapshot {
+    pub boards: Vec<Board>,
+    pub columns: Vec<Column>,
+    pub cards: Vec<Card>,
+    pub archived_cards: Vec<Card>,
+    pub sprints: Vec<Sprint>,
+    pub graph: DependencyGraph,
+}
+```
+
+### Capturing State
+
+```rust
+// Before executing a command
+let snapshot = Snapshot {
+    boards: boards.clone(),
+    columns: columns.clone(),
+    cards: cards.clone(),
+    archived_cards: archived_cards.clone(),
+    sprints: sprints.clone(),
+    graph: graph.clone(),
+};
+
+history_manager.capture_before_command(snapshot);
+
+// Execute the command
+execute_command(command)?;
+```
+
+<Tip>
+  Snapshots are captured before operations, not after. This ensures the undo operation restores the exact pre-command state.
+</Tip>
+
+## Undo Operation
+
+Undo restores the previous state:
+
+```rust
+pub fn undo(&mut self) -> Result<()> {
+    if let Some(snapshot) = self.history.pop_undo() {
+        // Save current state for redo
+        let current = self.create_snapshot();
+        
+        // Suppress capture during restore
+        self.history.suppress();
+        
+        // Restore previous state
+        self.restore_snapshot(snapshot);
+        
+        // Re-enable capture
+        self.history.unsuppress();
+        
+        // Push current to redo stack
+        self.history.push_redo(current);
+        
+        Ok(())
+    } else {
+        Err("Nothing to undo")
+    }
+}
+```
+
+### Undo Availability
+
+```rust
+if history_manager.can_undo() {
+    println!("Undo available: {} operations", history_manager.undo_depth());
+}
+```
+
+## Redo Operation
+
+Redo restores a previously undone state:
+
+```rust
+pub fn redo(&mut self) -> Result<()> {
+    if let Some(snapshot) = self.history.pop_redo() {
+        // Save current state for undo
+        let current = self.create_snapshot();
+        
+        // Suppress capture during restore
+        self.history.suppress();
+        
+        // Restore forward state
+        self.restore_snapshot(snapshot);
+        
+        // Re-enable capture
+        self.history.unsuppress();
+        
+        // Push current to undo stack
+        self.history.push_undo(current);
+        
+        Ok(())
+    } else {
+        Err("Nothing to redo")
+    }
+}
+```
+
+### Redo Availability
+
+```rust
+if history_manager.can_redo() {
+    println!("Redo available: {} operations", history_manager.redo_depth());
+}
+```
+
+## Standard Undo/Redo Behavior
+
+The implementation follows standard undo/redo semantics:
+
+<Steps>
+  <Step title="New Action Clears Redo">
+    When a new action is performed after an undo, the redo stack is cleared.
+    
+    ```rust
+    pub fn capture_before_command(&mut self, snapshot: Snapshot) {
+        if self.suppress_capture {
+            return;
+        }
+        
+        self.undo_stack.push_back(snapshot);
+        
+        // Any new action clears the redo history
+        self.redo_stack.clear();
+    }
+    ```
+  </Step>
+  
+  <Step title="Undo Enables Redo">
+    Each undo operation saves the current state to the redo stack.
+  </Step>
+  
+  <Step title="Redo Enables Undo">
+    Each redo operation saves the current state to the undo stack.
+  </Step>
+</Steps>
+
+## Suppression Mechanism
+
+Undo/redo operations themselves don't create history entries:
+
+```rust
+// Enable suppression during undo/redo
+pub fn suppress(&mut self) {
+    self.suppress_capture = true;
+}
+
+// Disable suppression after operation
+pub fn unsuppress(&mut self) {
+    self.suppress_capture = false;
+}
+
+// Calls to capture_before_command are ignored while suppressed
+if self.suppress_capture {
+    return;
+}
+```
+
+<Warning>
+  Forgetting to call `unsuppress()` will prevent all future operations from being added to history.
+</Warning>
+
+## What Actions Can Be Undone?
+
+All state-modifying operations support undo/redo:
+
+<AccordionGroup>
+  <Accordion title="Card Operations">
+    - Creating cards
+    - Editing card title, description, metadata
+    - Moving cards between columns
+    - Changing card priority or status
+    - Adding/removing story points
+    - Setting due dates
+    - Archiving/restoring cards
+    - Assigning cards to sprints
+  </Accordion>
+  
+  <Accordion title="Board Operations">
+    - Creating/editing boards
+    - Updating board settings
+    - Changing prefixes
+    - Setting sort preferences
+  </Accordion>
+  
+  <Accordion title="Column Operations">
+    - Creating columns
+    - Renaming columns
+    - Reordering columns
+    - Setting WIP limits
+    - Deleting columns
+  </Accordion>
+  
+  <Accordion title="Sprint Operations">
+    - Creating sprints
+    - Activating sprints
+    - Completing sprints
+    - Cancelling sprints
+    - Assigning/unassigning cards
+  </Accordion>
+  
+  <Accordion title="Dependency Operations">
+    - Adding blocking relationships
+    - Adding parent-child relationships
+    - Adding general relations
+    - Removing relationships
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  Read-only operations (viewing, filtering, sorting) don't create history entries.
+</Note>
+
+## Clearing History
+
+History can be cleared manually or on external reload:
+
+```rust
+// Clear all history
+history_manager.clear();
+
+assert!(!history_manager.can_undo());
+assert!(!history_manager.can_redo());
+```
+
+<Info>
+  History is automatically cleared when loading a board from disk to prevent undo/redo from operating on stale state.
+</Info>
+
+## Memory Considerations
+
+Each snapshot stores complete state:
+
+```rust
+// Approximate memory per snapshot:
+// - ~1KB per board
+// - ~0.5KB per column
+// - ~2KB per card (with description)
+// - ~1KB per sprint
+// - ~0.5KB per dependency edge
+
+// Example: Board with 50 cards, 5 columns, 3 sprints:
+// ~115KB per snapshot
+// ~11.5MB for 100 snapshots
+```
+
+The bounded history prevents unbounded growth while providing sufficient depth for typical workflows.
+
+## Integration with State Manager
+
+The `StateManager` integrates history management:
+
+```rust
+pub struct StateManager {
+    snapshot: Snapshot,
+    history: HistoryManager,
+    // ...
+}
+
+impl StateManager {
+    pub fn execute_command(&mut self, command: Box<dyn Command>) -> KanbanResult<()> {
+        // Capture state before command
+        self.history.capture_before_command(self.snapshot.clone());
+        
+        // Execute command
+        command.execute(&mut self.snapshot)?;
+        
+        Ok(())
+    }
+}
+```
+
+## Keybindings
+
+In the TUI:
+
+- `u` - Undo last operation
+- `U` (Shift+u) - Redo last undone operation
+
+<Tip>
+  The status bar shows the current undo/redo depth: `[Undo: 5] [Redo: 2]`
+</Tip>
+
+## Practical Example
+
+```rust
+// User creates a card
+let card = create_card("New Feature");
+// Snapshot captured automatically
+
+// User edits the card
+card.update_title("Improved Feature");
+// New snapshot captured
+
+// User presses 'u' to undo
+undo();
+// Restores title to "New Feature"
+// Current state saved to redo stack
+
+// User presses 'u' again
+undo();
+// Card is removed (undoes creation)
+
+// User presses 'U' to redo
+redo();
+// Card is recreated with "New Feature"
+
+// User presses 'U' again
+redo();
+// Title changes to "Improved Feature"
+
+// User creates a new card
+let card2 = create_card("Another Feature");
+// Redo stack is cleared (standard undo/redo behavior)
+```
+
+## Related Concepts
+
+<CardGroup cols={2}>
+  <Card title="Cards" icon="rectangle-history" href="/concepts/cards">
+    All card operations support undo/redo
+  </Card>
+  <Card title="Sprints" icon="calendar" href="/concepts/sprints">
+    Sprint lifecycle changes can be undone
+  </Card>
+  <Card title="Dependencies" icon="diagram-project" href="/concepts/dependencies">
+    Dependency modifications are reversible
+  </Card>
+  <Card title="Boards and Columns" icon="table-columns" href="/concepts/boards-and-columns">
+    Board and column changes can be undone
+  </Card>
+</CardGroup>

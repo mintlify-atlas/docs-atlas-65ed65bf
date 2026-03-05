@@ -1,0 +1,434 @@
+---
+title: Multi-Instance Support
+description: Real-time file watching, conflict detection, and last-write-wins resolution
+icon: clone
+---
+
+## Overview
+
+Kanban CLI supports running **multiple instances** simultaneously on the same data file. This enables workflows like:
+- Running the TUI in one terminal while using the CLI in another
+- Multiple team members editing the same board file on a shared filesystem
+- LLM tools (via MCP server) modifying boards while the TUI is open
+
+The system uses **real-time file watching**, **automatic conflict detection**, and **last-write-wins resolution** to keep instances synchronized.
+
+## How It Works
+
+From the README:
+
+> **Multi-Instance Support**:
+>   - Real-time file watching detects changes from other running instances
+>   - Automatic reload when no local changes exist
+>   - User prompt when local edits conflict with external changes
+>   - Last-write-wins conflict resolution for concurrent edits
+
+### Architecture
+
+```
+┌─────────────────┐         ┌─────────────────┐
+│   Instance A    │         │   Instance B    │
+│   (TUI)         │         │   (CLI)         │
+└────────┬────────┘         └────────┬────────┘
+         │                           │
+         │  ┌─────────────────────┐  │
+         └─►│   kanban.json       │◄─┘
+            │   (shared file)     │
+            └──────────┬──────────┘
+                       │
+            ┌──────────▼──────────┐
+            │  File Watcher       │
+            │  - Detects changes  │
+            │  - Notifies all     │
+            │    instances        │
+            └─────────────────────┘
+```
+
+## Real-Time File Watching
+
+Kanban uses the `notify` crate for cross-platform file system monitoring.
+
+### File Watcher Implementation
+
+```rust file_watcher.rs
+pub struct FileWatcher {
+    tx: broadcast::Sender<ChangeEvent>,
+    task_handle: Arc<TokioMutex<Option<tokio::task::JoinHandle<()>>>>,
+    paused: Arc<AtomicBool>,
+}
+
+impl FileWatcher {
+    /// Create a new file watcher with buffer size of 10
+    pub fn new() -> Self {
+        let (tx, _) = broadcast::channel(10);
+        Self {
+            tx,
+            task_handle: Arc::new(TokioMutex::new(None)),
+            paused: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    /// Pause file watching - events will be ignored until resumed
+    pub fn pause(&self) {
+        self.paused.store(true, Ordering::SeqCst);
+    }
+
+    /// Resume file watching - events will be processed normally
+    pub fn resume(&self) {
+        self.paused.store(false, Ordering::SeqCst);
+    }
+}
+```
+
+### Watched Events
+
+The file watcher detects:
+- **Direct writes**: `Modify(Data(Content))` events
+- **Atomic writes**: `Create` and `Remove` events from temp file → rename operations
+- **All write strategies**: Works with direct writes and atomic writes transparently
+
+```rust file_watcher.rs
+let is_relevant_event = matches!(
+    event.kind,
+    notify::EventKind::Modify(notify::event::ModifyKind::Data(
+        notify::event::DataChange::Content,
+    )) | notify::EventKind::Create(_)
+       | notify::EventKind::Remove(_)
+);
+```
+
+<Info>
+**Platform Support:**
+- **Linux**: Uses inotify
+- **macOS**: Uses FSEvents (monitors parent directory for better atomic write detection)
+- **Windows**: Uses ReadDirectoryChangesW
+</Info>
+
+## Automatic Reload
+
+When a file change is detected, kanban checks if the current instance has local changes:
+
+<Steps>
+  <Step title="File Change Detected">
+    File watcher sends a `ChangeEvent` to all subscribers
+  </Step>
+  <Step title="Check Local Changes">
+    Determine if the current instance has uncommitted modifications
+  </Step>
+  <Step title="Auto-Reload (No Conflicts)">
+    If no local changes exist, automatically reload from disk
+  </Step>
+  <Step title="Prompt User (Conflicts)">
+    If local changes exist, show conflict resolution dialog
+  </Step>
+</Steps>
+
+### Example: No Local Changes
+
+```bash
+# Terminal 1: TUI open, viewing board
+kanban
+
+# Terminal 2: CLI creates a new card
+kanban card create --board-id abc --column-id def --title "New task"
+
+# Terminal 1: TUI automatically reloads and shows new card
+# No user intervention required!
+```
+
+## Conflict Detection
+
+Kanban uses **file metadata** to detect conflicts before saving:
+
+### FileMetadata Structure
+
+```rust detector.rs
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FileMetadata {
+    /// Last modified time of the file
+    pub modified_time: SystemTime,
+    /// File size in bytes for additional verification
+    pub size: u64,
+    /// Content hash for detecting changes even when timestamp/size are identical
+    pub content_hash: u64,
+}
+
+impl FileMetadata {
+    pub fn from_file(path: &Path) -> std::io::Result<Self> {
+        let metadata = fs::metadata(path)?;
+        let modified_time = metadata.modified()?;
+        let size = metadata.len();
+
+        // Compute content hash for comprehensive change detection
+        let content = fs::read(path)?;
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        content.hash(&mut hasher);
+        let content_hash = hasher.finish();
+
+        Ok(Self { modified_time, size, content_hash })
+    }
+
+    pub fn has_changed(&self, path: &Path) -> std::io::Result<bool> {
+        let current = Self::from_file(path)?;
+        Ok(current != *self)
+    }
+}
+```
+
+<Note>
+The content hash provides protection against edge cases where timestamp and size might be identical but content differs (e.g., rapid successive writes).
+</Note>
+
+### Conflict Detection on Save
+
+```rust json_file_store.rs
+async fn save(&self, snapshot: StoreSnapshot) -> KanbanResult<PersistenceMetadata> {
+    // Check for external file modifications before saving
+    if self.path.exists() {
+        let current_metadata = FileMetadata::from_file(&self.path)?;
+
+        // Compare with last known metadata
+        let guard = self.lock_metadata();
+        if let Some(last_known) = *guard {
+            if last_known != current_metadata {
+                return Err(KanbanError::ConflictDetected {
+                    path: self.path.to_string_lossy().to_string(),
+                    source: None,
+                });
+            }
+        }
+    }
+
+    // Proceed with atomic write...
+    AtomicWriter::write_atomic(&self.path, &json_bytes).await?;
+
+    // Update last known metadata after successful write
+    if let Ok(new_metadata) = FileMetadata::from_file(&self.path) {
+        let mut guard = self.lock_metadata();
+        *guard = Some(new_metadata);
+    }
+
+    Ok(snapshot.metadata)
+}
+```
+
+## User Prompts for Conflicts
+
+From the CHANGELOG (v0.1.15):
+
+> - **feat(tui)**: Implement conflict resolution dialog and event loop integration
+> - **feat(tui)**: Add ExternalChangeDetected dialog
+
+When a conflict is detected, the user is prompted with options:
+
+```
+┌───────────────────────────────────────────────┐
+│  External Changes Detected                    │
+├───────────────────────────────────────────────┤
+│                                               │
+│  The file has been modified by another        │
+│  instance. You have unsaved local changes.    │
+│                                               │
+│  What would you like to do?                   │
+│                                               │
+│  [R] Reload and discard local changes         │
+│  [O] Overwrite with local changes             │
+│  [C] Cancel                                   │
+│                                               │
+└───────────────────────────────────────────────┘
+```
+
+**Options:**
+1. **Reload (R)**: Discard local changes and reload from disk
+2. **Overwrite (O)**: Save local changes, overwriting external changes
+3. **Cancel (C)**: Do nothing, keep current state
+
+<Warning>
+The "Overwrite" option implements **last-write-wins** semantics. External changes will be lost.
+</Warning>
+
+## Last-Write-Wins Resolution
+
+From the README:
+
+> **Last-write-wins conflict resolution** for concurrent edits
+
+When two instances make conflicting changes:
+1. First instance saves successfully
+2. Second instance detects conflict on save attempt
+3. User chooses to overwrite → second instance's changes win
+4. First instance's changes are overwritten
+
+### Example Scenario
+
+```bash
+# Time 0: Both instances load the same file
+Instance A: Loads kanban.json (metadata: mtime=10:00:00)
+Instance B: Loads kanban.json (metadata: mtime=10:00:00)
+
+# Time 1: Instance A makes changes and saves
+Instance A: Edits card "ABC" title → Saves
+File state: mtime=10:00:05
+
+# Time 2: Instance B tries to save
+Instance B: Edits card "XYZ" status → Attempts save
+Instance B: Detects conflict (expected mtime=10:00:00, actual=10:00:05)
+Instance B: Shows conflict dialog
+
+# Time 3: User chooses "Overwrite"
+Instance B: Saves with overwrite
+File state: Contains Instance B's changes, Instance A's changes lost
+```
+
+<Tip>
+To avoid conflicts, use the TUI for interactive work and the CLI for scripted operations. The TUI will automatically reload when CLI commands execute.
+</Tip>
+
+## Preventing False Positives
+
+From the CHANGELOG (v0.1.15):
+
+> - **fix**: Add instance ID check to file watcher to prevent false positives
+
+Each instance has a unique `instance_id` (UUID). The file metadata includes the ID of the instance that last saved:
+
+```json
+{
+  "version": 2,
+  "metadata": {
+    "instance_id": "550e8400-e29b-41d4-a716-446655440000",
+    "saved_at": "2026-03-05T10:30:00Z"
+  },
+  "data": {...}
+}
+```
+
+This allows instances to:
+- Ignore file change events caused by their own saves
+- Only reload when external instances modify the file
+
+### Implementation
+
+```rust json_file_store.rs
+pub struct JsonFileStore {
+    path: PathBuf,
+    instance_id: Uuid,  // Unique per instance
+    last_known_metadata: Mutex<Option<FileMetadata>>,
+}
+
+impl JsonFileStore {
+    pub fn new(path: impl AsRef<Path>) -> Self {
+        Self {
+            path: path.as_ref().to_path_buf(),
+            instance_id: Uuid::new_v4(),  // Generated on creation
+            last_known_metadata: Mutex::new(None),
+        }
+    }
+}
+```
+
+## Pause/Resume Watching
+
+From the CHANGELOG (v0.1.15):
+
+> - **fix**: Centralize file watcher pause/resume in StateManager
+
+The file watcher can be paused during save operations to prevent detecting own writes:
+
+```rust
+// Before saving
+self.file_watcher.pause();
+
+// Perform save
+self.store.save(snapshot).await?;
+
+// After saving
+self.file_watcher.resume();
+```
+
+<Info>
+Pausing is crucial because:
+- Atomic writes trigger file system events (create, remove)
+- Without pausing, the instance would detect its own write as an external change
+- This would cause unnecessary reload attempts
+</Info>
+
+## Integration with MCP Server
+
+The MCP server includes **automatic retry logic** to handle conflicts gracefully:
+
+```rust
+// Retry configuration
+max_attempts: 3
+initial_delay: 50ms
+max_delay: 1000ms
+backoff_multiplier: 2.0x
+
+// Execution flow
+Attempt 1 → ConflictDetected → Wait 50ms
+Attempt 2 → ConflictDetected → Wait 100ms
+Attempt 3 → Success ✓
+```
+
+This works seamlessly with the TUI:
+1. TUI has the board open
+2. LLM tool sends command via MCP server
+3. MCP server retries until TUI's file watcher detects change and reloads
+4. TUI automatically shows updated state
+
+See [MCP Server documentation](/advanced/mcp-server#concurrency--conflict-resolution) for details.
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use TUI for interactive work, CLI for automation">
+    The TUI provides real-time feedback and automatically handles external changes. Use the CLI for scripted operations that run in the background.
+  </Accordion>
+  
+  <Accordion title="Avoid rapid concurrent edits">
+    While the system handles conflicts, rapid concurrent edits can lead to data loss due to last-write-wins. Coordinate changes when possible.
+  </Accordion>
+  
+  <Accordion title="Monitor the debug log during development">
+    Set `KANBAN_DEBUG_LOG` to see file watcher events and conflict detection:
+    ```bash
+    export KANBAN_DEBUG_LOG=~/kanban-debug.log
+    kanban
+    ```
+  </Accordion>
+  
+  <Accordion title="Use version control for important boards">
+    Track your board file in git to preserve history:
+    ```bash
+    git add kanban.json
+    git commit -m "Checkpoint: Sprint 3 planning"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+<Warning>
+**Last-Write-Wins Semantics**
+
+Conflicts are resolved by overwriting, not merging. If two instances edit different cards simultaneously, the last save wins and the other changes are lost.
+
+Future versions may add operational transformation or CRDTs for true collaborative editing.
+</Warning>
+
+<Note>
+**Network File Systems**
+
+File watching may have delays on network file systems (NFS, CIFS). The watcher relies on OS-native notifications which may be slower or less reliable over networks.
+</Note>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Persistence" icon="floppy-disk" href="/advanced/persistence">
+    Learn about atomic writes and file formats
+  </Card>
+  <Card title="MCP Server" icon="plug" href="/advanced/mcp-server">
+    Use LLM tools with kanban boards
+  </Card>
+</CardGroup>

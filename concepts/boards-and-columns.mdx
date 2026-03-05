@@ -1,0 +1,239 @@
+---
+title: Boards and Columns
+description: Understanding board structure, columns, and WIP limits in Kanban CLI
+---
+
+## Overview
+
+Boards are the top-level organizational unit in Kanban CLI. Each board contains columns that represent stages in your workflow, and cards flow through these columns as work progresses.
+
+## Board Structure
+
+A board is defined by the `Board` struct with the following key fields:
+
+```rust
+pub struct Board {
+    pub id: BoardId,              // Unique identifier (UUID)
+    pub name: String,             // Board name
+    pub description: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    
+    // Sprint configuration
+    pub sprint_prefix: Option<String>,
+    pub card_prefix: Option<String>,
+    pub sprint_duration_days: Option<u32>,
+    pub active_sprint_id: Option<Uuid>,
+    
+    // Sorting and view preferences
+    pub task_sort_field: SortField,
+    pub task_sort_order: SortOrder,
+    pub task_list_view: TaskListView,
+    
+    // Counters for card and sprint numbering
+    pub prefix_counters: HashMap<String, u32>,
+    pub sprint_counters: HashMap<String, u32>,
+    
+    // Completion tracking
+    pub completion_column_id: Option<Uuid>,
+}
+```
+
+### Key Metadata
+
+<AccordionGroup>
+  <Accordion title="Card and Sprint Prefixes">
+    - `card_prefix`: Default prefix for card identifiers (e.g., "task" → task-1, task-2)
+    - `sprint_prefix`: Default prefix for sprint identifiers (e.g., "sprint" → sprint-1)
+    - Both can be customized per board and overridden at sprint or card level
+  </Accordion>
+
+  <Accordion title="Prefix Counters">
+    Boards maintain separate counter sequences for different prefixes:
+    
+    ```rust
+    // Get next card number for a prefix
+    let number = board.get_next_card_number("feat");
+    // Returns 1 on first call, 2 on second, etc.
+    
+    // Multiple prefixes maintain independent sequences
+    board.get_next_card_number("bug");  // Returns 1
+    board.get_next_card_number("feat"); // Returns 2
+    ```
+    
+    This allows you to use different prefixes (bug, feat, task) with independent numbering.
+  </Accordion>
+
+  <Accordion title="Task Sorting">
+    Cards can be sorted by various fields:
+    
+    ```rust
+    pub enum SortField {
+        Points,      // Story points
+        Priority,    // Low, Medium, High, Critical
+        CreatedAt,   // Creation timestamp
+        UpdatedAt,   // Last modified
+        Status,      // Todo, InProgress, Blocked, Done
+        Position,    // Manual ordering
+        Default,     // Default sort order
+    }
+    
+    pub enum SortOrder {
+        Ascending,
+        Descending,
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Column Structure
+
+Columns represent workflow stages and contain the following fields:
+
+```rust
+pub struct Column {
+    pub id: ColumnId,
+    pub board_id: BoardId,
+    pub name: String,
+    pub position: i32,           // Display order
+    pub wip_limit: Option<i32>,  // Work-in-progress limit
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+### WIP Limits
+
+Work-in-progress (WIP) limits help prevent bottlenecks by restricting how many cards can be in a column:
+
+```rust
+let mut column = Column::new(board_id, "In Progress".to_string(), 1);
+column.set_wip_limit(Some(3)); // Limit to 3 cards
+```
+
+<Note>
+  WIP limits are optional. Set to `None` for unlimited capacity.
+</Note>
+
+## Custom Columns
+
+Unlike rigid Kanban tools, you can define any columns that match your workflow:
+
+<CodeGroup>
+
+```rust Classic Development
+"Backlog" → "Todo" → "In Progress" → "Review" → "Done"
+```
+
+```rust Bug Tracking
+"Reported" → "Triaged" → "In Progress" → "Testing" → "Closed"
+```
+
+```rust Research
+"Ideas" → "Researching" → "Validating" → "Documented" → "Archived"
+```
+
+</CodeGroup>
+
+## Board Management Operations
+
+### Creating a Board
+
+```rust
+let board = Board::new(
+    "My Project".to_string(),
+    Some("Project description".to_string())
+);
+```
+
+### Updating Board Settings
+
+```rust
+// Update name and description
+board.update_name("New Name".to_string());
+board.update_description(Some("New description".to_string()));
+
+// Configure prefixes
+board.update_card_prefix(Some("feat".to_string()));
+board.update_sprint_prefix(Some("sprint".to_string()));
+
+// Set task sorting
+board.update_task_sort(SortField::Priority, SortOrder::Descending);
+```
+
+### Partial Updates
+
+For updating multiple fields atomically:
+
+```rust
+let updates = BoardUpdate {
+    name: Some("Updated Board".to_string()),
+    card_prefix: FieldUpdate::Set("task".to_string()),
+    sprint_duration_days: FieldUpdate::Set(14),
+    ..Default::default()
+};
+board.update(updates);
+```
+
+### Managing Columns
+
+```rust
+// Create columns
+let mut col1 = Column::new(board.id, "Todo".to_string(), 0);
+let mut col2 = Column::new(board.id, "Done".to_string(), 1);
+
+// Set WIP limit
+col1.set_wip_limit(Some(5));
+
+// Update column name
+col2.update_name("Completed".to_string());
+
+// Reorder columns
+col1.update_position(1);
+col2.update_position(0);
+```
+
+## Completion Column
+
+Boards can designate a completion column where cards are automatically marked as Done:
+
+```rust
+// Set explicit completion column
+board.update_completion_column_id(Some(done_column_id));
+
+// Resolve completion column (explicit or fallback to last)
+let columns = vec![todo_col, in_progress_col, done_col];
+let completion_id = board.resolve_completion_column(&columns);
+```
+
+<Info>
+  If no completion column is explicitly set, the last column by position is used as the default.
+</Info>
+
+## Task List Views
+
+Boards support multiple view modes for displaying cards:
+
+```rust
+pub enum TaskListView {
+    Flat,              // Simple list of all cards
+    GroupedByColumn,   // Cards grouped under column headers
+    Kanban,            // Classic kanban board layout
+}
+
+board.update_task_list_view(TaskListView::Kanban);
+```
+
+## Related Concepts
+
+<CardGroup cols={2}>
+  <Card title="Cards" icon="rectangle-history" href="/concepts/cards">
+    Learn about card structure and operations
+  </Card>
+  <Card title="Sprints" icon="calendar" href="/concepts/sprints">
+    Organize work into time-boxed sprints
+  </Card>
+  <Card title="Dependencies" icon="diagram-project" href="/concepts/dependencies">
+    Track relationships between cards
+  </Card>
+</CardGroup>

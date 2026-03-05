@@ -1,97 +1,228 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Kanban Documentation"
+description: "A fast, keyboard-driven terminal kanban tool for agile project management"
+mode: "custom"
 ---
 
-## Setting up
+<div className="relative overflow-hidden bg-gradient-to-br from-[#0f1117] via-[#1a1d27] to-[#0f1117] dark:from-[#0f1117] dark:via-[#1a1d27] dark:to-[#0f1117] py-20">
+  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40"></div>
+  
+  <div className="relative max-w-6xl mx-auto px-6 sm:px-8">
+    <div className="text-center">
+      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#94cb04]/10 dark:bg-[#94cb04]/10 border border-[#94cb04]/20 dark:border-[#94cb04]/20 mb-6">
+        <span className="text-[#94cb04] dark:text-[#94cb04] text-sm font-medium">Terminal-Based Project Management</span>
+      </div>
+      
+      <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white dark:text-white mb-6 tracking-tight">
+        Fast, Keyboard-Driven<br />
+        <span className="text-[#94cb04] dark:text-[#94cb04]">Kanban Boards</span>
+      </h1>
+      
+      <p className="text-xl text-gray-300 dark:text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
+        Manage your projects with vim-like efficiency. Sprint planning, card dependencies, and real-time collaboration — all from your terminal.
+      </p>
+      
+      <div className="flex flex-wrap items-center justify-center gap-4">
+        <a
+          href="/quickstart"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-[#94cb04] hover:bg-[#7ea803] dark:bg-[#94cb04] dark:hover:bg-[#7ea803] text-black dark:text-black font-semibold rounded-lg transition-colors no-underline"
+        >
+          Get Started
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
+        <a
+          href="/installation"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 dark:bg-white/5 dark:hover:bg-white/10 text-white dark:text-white font-semibold rounded-lg border border-white/10 dark:border-white/10 transition-colors no-underline"
+        >
+          Installation
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Quick Start</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Get up and running with Kanban in minutes</p>
+  
+  <Steps>
+    <Step title="Install Kanban">
+      Install using your preferred method:
+      
+      <CodeGroup>
+      ```bash Cargo
+      cargo install kanban-cli
+      ```
+      
+      ```bash Nix
+      nix run github:fulsomenko/kanban
+      ```
+      
+      ```bash Source
+      git clone https://github.com/fulsomenko/kanban
+      cd kanban
+      cargo install --path crates/kanban-cli
+      ```
+      </CodeGroup>
+    </Step>
+    
+    <Step title="Launch the TUI">
+      Start the interactive terminal interface:
+      
+      ```bash
+      kanban
+      ```
+      
+      Or load a specific board file:
+      
+      ```bash
+      kanban myboard.json
+      ```
+    </Step>
+    
+    <Step title="Create your first board">
+      Press `n` to create a new board, then press `Enter` to activate it. Add cards with `n` and organize them across columns using vim-like navigation (`hjkl`).
+      
+      <Tip>Press `?` at any time to view all available keyboard shortcuts for your current context.</Tip>
+    </Step>
+  </Steps>
+</div>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Key Features</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Everything you need for agile project management in the terminal</p>
+  
+  <CardGroup cols={2}>
+    <Card title="Vim-Like Navigation" icon="keyboard" href="/guide/keyboard-shortcuts">
+      Blazing fast navigation with hjkl movement, `/` search, and context-aware shortcuts. Built for keyboard warriors.
+    </Card>
+    <Card title="Sprint Planning" icon="calendar-days" href="/concepts/sprints">
+      Plan and track sprints with story points, card assignments, and automatic progress tracking.
+    </Card>
+    <Card title="Card Dependencies" icon="diagram-project" href="/concepts/dependencies">
+      Create parent-child and blocking relationships between cards to model complex workflows.
+    </Card>
+    <Card title="Multiple Views" icon="table-cells" href="/guide/views">
+      Switch between flat list, grouped by column, or classic kanban board layout with a single keystroke.
+    </Card>
+    <Card title="Undo/Redo" icon="clock-rotate-left" href="/concepts/undo-redo">
+      Press `u` to undo and `U` to redo any action. Your entire action history is preserved.
+    </Card>
+    <Card title="CLI Interface" icon="terminal" href="/guide/cli">
+      Complete command-line interface for scripting, automation, and CI/CD integration.
+    </Card>
+    <Card title="MCP Server" icon="plug" href="/advanced/mcp-server">
+      Integrate with LLM tools like Claude and Cursor using the Model Context Protocol server.
+    </Card>
+    <Card title="Multi-Instance Support" icon="users" href="/advanced/multi-instance">
+      Real-time file watching with conflict detection and automatic reload for concurrent editing.
+    </Card>
+  </CardGroup>
+</div>
 
-## Make it yours
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Explore by Topic</h2>
+  <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Dive deeper into specific areas of Kanban</p>
+  
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <a href="/guide/tui" className="group block rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-[#94cb04] dark:hover:border-[#94cb04] overflow-hidden transition-all duration-200 no-underline bg-white dark:bg-[#1a1d27]">
+      <div className="p-6">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg bg-[#94cb04]/10 dark:bg-[#94cb04]/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-[#94cb04] dark:text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white m-0">Terminal UI Guide</h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Master the interactive terminal interface with vim-like shortcuts and efficient workflows.</p>
+        <span className="text-sm text-[#94cb04] dark:text-[#94cb04] group-hover:text-[#7ea803] dark:group-hover:text-[#7ea803] inline-flex items-center gap-1">
+          Learn more
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </span>
+      </div>
+    </a>
+    
+    <a href="/cli/overview" className="group block rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-[#94cb04] dark:hover:border-[#94cb04] overflow-hidden transition-all duration-200 no-underline bg-white dark:bg-[#1a1d27]">
+      <div className="p-6">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg bg-[#94cb04]/10 dark:bg-[#94cb04]/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-[#94cb04] dark:text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white m-0">CLI Reference</h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Complete command-line reference for boards, cards, columns, sprints, and automation.</p>
+        <span className="text-sm text-[#94cb04] dark:text-[#94cb04] group-hover:text-[#7ea803] dark:group-hover:text-[#7ea803] inline-flex items-center gap-1">
+          View commands
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </span>
+      </div>
+    </a>
+    
+    <a href="/concepts/boards-and-columns" className="group block rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-[#94cb04] dark:hover:border-[#94cb04] overflow-hidden transition-all duration-200 no-underline bg-white dark:bg-[#1a1d27]">
+      <div className="p-6">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg bg-[#94cb04]/10 dark:bg-[#94cb04]/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-[#94cb04] dark:text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+          </div>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white m-0">Core Concepts</h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Understand boards, columns, cards, sprints, dependencies, and the undo/redo system.</p>
+        <span className="text-sm text-[#94cb04] dark:text-[#94cb04] group-hover:text-[#7ea803] dark:group-hover:text-[#7ea803] inline-flex items-center gap-1">
+          Explore concepts
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </span>
+      </div>
+    </a>
+    
+    <a href="/development/architecture" className="group block rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-[#94cb04] dark:hover:border-[#94cb04] overflow-hidden transition-all duration-200 no-underline bg-white dark:bg-[#1a1d27]">
+      <div className="p-6">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg bg-[#94cb04]/10 dark:bg-[#94cb04]/10 flex items-center justify-center">
+            <svg className="w-5 h-5 text-[#94cb04] dark:text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+            </svg>
+          </div>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white m-0">Architecture & Contributing</h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Learn about the Rust workspace structure, SOLID principles, and how to contribute.</p>
+        <span className="text-sm text-[#94cb04] dark:text-[#94cb04] group-hover:text-[#7ea803] dark:group-hover:text-[#7ea803] inline-flex items-center gap-1">
+          Start contributing
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </span>
+      </div>
+    </a>
+  </div>
+</div>
 
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<div className="mt-20 mb-16 max-w-5xl mx-auto px-6">
+  <div className="rounded-2xl bg-gradient-to-br from-[#94cb04]/10 to-[#7ea803]/5 dark:from-[#94cb04]/10 dark:to-[#7ea803]/5 border border-[#94cb04]/20 dark:border-[#94cb04]/20 p-8 sm:p-12 text-center">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Ready to get started?</h2>
+    <p className="text-lg text-gray-600 dark:text-gray-400 mb-6 max-w-2xl mx-auto">
+      Install Kanban and start managing your projects with terminal efficiency.
+    </p>
+    <a
+      href="/quickstart"
+      className="inline-flex items-center gap-2 px-6 py-3 bg-[#94cb04] hover:bg-[#7ea803] dark:bg-[#94cb04] dark:hover:bg-[#7ea803] text-black dark:text-black font-semibold rounded-lg transition-colors no-underline"
+    >
+      View Quickstart
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+      </svg>
+    </a>
+  </div>
+</div>

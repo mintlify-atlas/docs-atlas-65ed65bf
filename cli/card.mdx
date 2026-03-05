@@ -1,0 +1,431 @@
+---
+title: Card Commands
+description: Manage cards via CLI
+---
+
+## Overview
+
+Card commands provide comprehensive card management including creation, updates, movement between columns, archiving, sprint assignment, and git integration.
+
+## Commands
+
+### Create a Card
+
+Create a new card in a column:
+
+```bash
+kanban card create --board-id <BOARD_ID> --column-id <COLUMN_ID> --title <TITLE> [OPTIONS]
+```
+
+<ParamField path="--board-id" type="uuid" required>
+  The UUID of the board.
+</ParamField>
+
+<ParamField path="--column-id" type="uuid" required>
+  The UUID of the column where the card will be created.
+</ParamField>
+
+<ParamField path="--title" type="string" required>
+  The title of the card.
+</ParamField>
+
+<ParamField path="--description" type="string">
+  Optional description for the card.
+</ParamField>
+
+<ParamField path="--priority" type="string">
+  Priority level (e.g., "low", "medium", "high").
+</ParamField>
+
+<ParamField path="--points" type="integer">
+  Story points (0-255).
+</ParamField>
+
+<ParamField path="--due-date" type="string">
+  Due date in ISO 8601 format (e.g., "2024-12-31").
+</ParamField>
+
+#### Example
+
+```bash
+kanban card create \
+  --board-id 550e8400-e29b-41d4-a716-446655440000 \
+  --column-id 6ba7b810-9dad-11d1-80b4-00c04fd430c8 \
+  --title "Implement user authentication" \
+  --description "Add JWT-based authentication" \
+  --priority "high" \
+  --points 8 \
+  --due-date "2024-03-15"
+```
+
+### List Cards
+
+List cards with optional filters:
+
+```bash
+kanban card list [OPTIONS]
+```
+
+<ParamField path="--board-id" type="uuid">
+  Filter by board ID.
+</ParamField>
+
+<ParamField path="--column-id" type="uuid">
+  Filter by column ID.
+</ParamField>
+
+<ParamField path="--sprint-id" type="uuid">
+  Filter by sprint ID.
+</ParamField>
+
+<ParamField path="--status" type="string">
+  Filter by status.
+</ParamField>
+
+<ParamField path="--archived" type="flag">
+  Include archived cards.
+</ParamField>
+
+#### Examples
+
+```bash
+# List all cards in a board
+kanban card list --board-id 550e8400-e29b-41d4-a716-446655440000
+
+# List cards in a specific column
+kanban card list --column-id 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+
+# List cards in a sprint
+kanban card list --sprint-id 7c9e6679-7425-40de-944b-e07fc1f90ae7
+
+# List archived cards
+kanban card list --board-id 550e8400-e29b-41d4-a716-446655440000 --archived
+```
+
+### Get a Card by ID
+
+Retrieve a specific card:
+
+```bash
+kanban card get <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the card.
+</ParamField>
+
+### Update a Card
+
+Update card properties:
+
+```bash
+kanban card update <ID> [OPTIONS]
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the card to update.
+</ParamField>
+
+<ParamField path="--title" type="string">
+  Update the card title.
+</ParamField>
+
+<ParamField path="--description" type="string">
+  Update the card description.
+</ParamField>
+
+<ParamField path="--priority" type="string">
+  Update the priority.
+</ParamField>
+
+<ParamField path="--status" type="string">
+  Update the status.
+</ParamField>
+
+<ParamField path="--points" type="integer">
+  Update story points.
+</ParamField>
+
+<ParamField path="--due-date" type="string">
+  Update due date.
+</ParamField>
+
+<ParamField path="--clear-due-date" type="flag">
+  Remove the due date.
+</ParamField>
+
+#### Example
+
+```bash
+kanban card update 550e8400-e29b-41d4-a716-446655440000 \
+  --title "Updated title" \
+  --priority "critical" \
+  --points 13
+```
+
+### Move a Card
+
+Move a card to another column:
+
+```bash
+kanban card move <ID> --column-id <COLUMN_ID> [--position <POSITION>]
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the card to move.
+</ParamField>
+
+<ParamField path="--column-id" type="uuid" required>
+  The UUID of the destination column.
+</ParamField>
+
+<ParamField path="--position" type="integer">
+  Optional position in the column (0-indexed).
+</ParamField>
+
+#### Example
+
+```bash
+kanban card move 550e8400-e29b-41d4-a716-446655440000 \
+  --column-id 6ba7b810-9dad-11d1-80b4-00c04fd430c8 \
+  --position 0
+```
+
+### Archive a Card
+
+Archive a card (soft delete):
+
+```bash
+kanban card archive <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the card to archive.
+</ParamField>
+
+#### Example
+
+```bash
+kanban card archive 550e8400-e29b-41d4-a716-446655440000
+```
+
+### Restore an Archived Card
+
+Restore a previously archived card:
+
+```bash
+kanban card restore <ID> [--column-id <COLUMN_ID>]
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the card to restore.
+</ParamField>
+
+<ParamField path="--column-id" type="uuid">
+  Optional column ID to restore the card to. If not specified, restores to the original column.
+</ParamField>
+
+#### Example
+
+```bash
+kanban card restore 550e8400-e29b-41d4-a716-446655440000 \
+  --column-id 6ba7b810-9dad-11d1-80b4-00c04fd430c8
+```
+
+### Delete a Card
+
+Permanently delete an archived card:
+
+```bash
+kanban card delete <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the archived card to delete.
+</ParamField>
+
+<Warning>
+  This action is irreversible. Only archived cards can be deleted.
+</Warning>
+
+## Sprint Management
+
+### Assign Card to Sprint
+
+Assign a card to a sprint:
+
+```bash
+kanban card assign-sprint <ID> --sprint-id <SPRINT_ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the card.
+</ParamField>
+
+<ParamField path="--sprint-id" type="uuid" required>
+  The UUID of the sprint.
+</ParamField>
+
+#### Example
+
+```bash
+kanban card assign-sprint 550e8400-e29b-41d4-a716-446655440000 \
+  --sprint-id 7c9e6679-7425-40de-944b-e07fc1f90ae7
+```
+
+### Unassign Card from Sprint
+
+Remove a card from its sprint:
+
+```bash
+kanban card unassign-sprint <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the card.
+</ParamField>
+
+## Git Integration
+
+### Get Branch Name
+
+Generate a git branch name for a card:
+
+```bash
+kanban card branch-name <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the card.
+</ParamField>
+
+#### Example
+
+```bash
+kanban card branch-name 550e8400-e29b-41d4-a716-446655440000
+# Output: "PROJ-123-implement-user-authentication"
+```
+
+### Get Git Checkout Command
+
+Generate a git checkout command for a card:
+
+```bash
+kanban card git-checkout <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the card.
+</ParamField>
+
+#### Example
+
+```bash
+# Get the checkout command
+CHECKOUT_CMD=$(kanban card git-checkout 550e8400-e29b-41d4-a716-446655440000)
+
+# Execute it
+eval $CHECKOUT_CMD
+```
+
+## Bulk Operations
+
+### Bulk Archive Cards
+
+Archive multiple cards at once:
+
+```bash
+kanban card bulk-archive --ids <ID1>,<ID2>,<ID3>
+```
+
+<ParamField path="--ids" type="uuid[]" required>
+  Comma-separated list of card UUIDs.
+</ParamField>
+
+#### Example
+
+```bash
+kanban card bulk-archive --ids \
+  550e8400-e29b-41d4-a716-446655440000,\
+  6ba7b810-9dad-11d1-80b4-00c04fd430c8,\
+  7c9e6679-7425-40de-944b-e07fc1f90ae7
+```
+
+### Bulk Move Cards
+
+Move multiple cards to a column:
+
+```bash
+kanban card bulk-move --ids <ID1>,<ID2> --column-id <COLUMN_ID>
+```
+
+<ParamField path="--ids" type="uuid[]" required>
+  Comma-separated list of card UUIDs.
+</ParamField>
+
+<ParamField path="--column-id" type="uuid" required>
+  The UUID of the destination column.
+</ParamField>
+
+#### Example
+
+```bash
+kanban card bulk-move \
+  --ids 550e8400-e29b-41d4-a716-446655440000,6ba7b810-9dad-11d1-80b4-00c04fd430c8 \
+  --column-id 7c9e6679-7425-40de-944b-e07fc1f90ae7
+```
+
+### Bulk Assign Cards to Sprint
+
+Assign multiple cards to a sprint:
+
+```bash
+kanban card bulk-assign-sprint --ids <ID1>,<ID2> --sprint-id <SPRINT_ID>
+```
+
+<ParamField path="--ids" type="uuid[]" required>
+  Comma-separated list of card UUIDs.
+</ParamField>
+
+<ParamField path="--sprint-id" type="uuid" required>
+  The UUID of the sprint.
+</ParamField>
+
+#### Example
+
+```bash
+kanban card bulk-assign-sprint \
+  --ids 550e8400-e29b-41d4-a716-446655440000,6ba7b810-9dad-11d1-80b4-00c04fd430c8 \
+  --sprint-id 7c9e6679-7425-40de-944b-e07fc1f90ae7
+```
+
+## Common Workflows
+
+### Create and Start Working on a Card
+
+```bash
+# Create card
+CARD_ID=$(kanban card create \
+  --board-id $BOARD_ID \
+  --column-id $TODO_COLUMN_ID \
+  --title "Implement feature" \
+  --priority "high" | jq -r '.id')
+
+# Move to "In Progress" column
+kanban card move $CARD_ID --column-id $IN_PROGRESS_COLUMN_ID
+
+# Create and checkout git branch
+eval $(kanban card git-checkout $CARD_ID)
+```
+
+### Sprint Planning
+
+```bash
+# Get all backlog cards
+BACKLOG_CARDS=$(kanban card list --column-id $BACKLOG_COLUMN_ID | jq -r '.[].id')
+
+# Assign high priority cards to sprint
+for card_id in $(echo $BACKLOG_CARDS | jq -r '.[] | select(.priority == "high") | .id'); do
+  kanban card assign-sprint $card_id --sprint-id $SPRINT_ID
+done
+```

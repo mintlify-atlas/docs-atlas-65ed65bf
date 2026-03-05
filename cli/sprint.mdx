@@ -1,0 +1,361 @@
+---
+title: Sprint Commands
+description: Manage sprints via CLI
+---
+
+## Overview
+
+Sprint commands allow you to create and manage agile sprints on your kanban boards. Sprints help organize work into time-boxed iterations with defined start and end dates.
+
+## Commands
+
+### Create a Sprint
+
+Create a new sprint for a board:
+
+```bash
+kanban sprint create --board-id <BOARD_ID> [OPTIONS]
+```
+
+<ParamField path="--board-id" type="uuid" required>
+  The UUID of the board.
+</ParamField>
+
+<ParamField path="--prefix" type="string">
+  Optional prefix for the sprint ID (e.g., "SP" generates "SP-1", "SP-2").
+</ParamField>
+
+<ParamField path="--name" type="string">
+  Optional custom name for the sprint. If not provided, a name will be generated based on the prefix and number.
+</ParamField>
+
+#### Examples
+
+```bash
+# Create sprint with auto-generated name
+kanban sprint create --board-id 550e8400-e29b-41d4-a716-446655440000
+
+# Create sprint with custom prefix
+kanban sprint create \
+  --board-id 550e8400-e29b-41d4-a716-446655440000 \
+  --prefix "SPRINT"
+
+# Create sprint with custom name
+kanban sprint create \
+  --board-id 550e8400-e29b-41d4-a716-446655440000 \
+  --name "Q1 2024 Sprint 1"
+```
+
+#### Output
+
+```json
+{
+  "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "board_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "Sprint 1",
+  "prefix": null,
+  "status": "planned",
+  "start_date": null,
+  "end_date": null,
+  "created_at": "2024-03-05T12:00:00Z",
+  "updated_at": "2024-03-05T12:00:00Z"
+}
+```
+
+### List Sprints
+
+List all sprints for a board:
+
+```bash
+kanban sprint list --board-id <BOARD_ID>
+```
+
+<ParamField path="--board-id" type="uuid" required>
+  The UUID of the board.
+</ParamField>
+
+#### Example
+
+```bash
+kanban sprint list --board-id 550e8400-e29b-41d4-a716-446655440000
+```
+
+#### Output
+
+```json
+[
+  {
+    "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "board_id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Sprint 1",
+    "prefix": "SP",
+    "status": "active",
+    "start_date": "2024-03-01",
+    "end_date": "2024-03-14",
+    "created_at": "2024-03-05T12:00:00Z",
+    "updated_at": "2024-03-05T12:00:00Z"
+  },
+  {
+    "id": "8d0e7680-8536-41ef-a945-f17fc1f90ae8",
+    "board_id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Sprint 2",
+    "prefix": "SP",
+    "status": "planned",
+    "start_date": null,
+    "end_date": null,
+    "created_at": "2024-03-05T12:00:00Z",
+    "updated_at": "2024-03-05T12:00:00Z"
+  }
+]
+```
+
+### Get a Sprint by ID
+
+Retrieve a specific sprint:
+
+```bash
+kanban sprint get <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the sprint.
+</ParamField>
+
+#### Example
+
+```bash
+kanban sprint get 7c9e6679-7425-40de-944b-e07fc1f90ae7
+```
+
+### Update a Sprint
+
+Update sprint properties:
+
+```bash
+kanban sprint update <ID> [OPTIONS]
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the sprint to update.
+</ParamField>
+
+<ParamField path="--name" type="string">
+  Update the sprint name.
+</ParamField>
+
+<ParamField path="--prefix" type="string">
+  Update the sprint prefix.
+</ParamField>
+
+<ParamField path="--card-prefix" type="string">
+  Update the prefix for cards in this sprint.
+</ParamField>
+
+<ParamField path="--start-date" type="string">
+  Set the start date (ISO 8601 format, e.g., "2024-03-01").
+</ParamField>
+
+<ParamField path="--end-date" type="string">
+  Set the end date (ISO 8601 format).
+</ParamField>
+
+<ParamField path="--clear-start-date" type="flag">
+  Remove the start date.
+</ParamField>
+
+<ParamField path="--clear-end-date" type="flag">
+  Remove the end date.
+</ParamField>
+
+#### Examples
+
+```bash
+# Update sprint name and dates
+kanban sprint update 7c9e6679-7425-40de-944b-e07fc1f90ae7 \
+  --name "Q1 Sprint 1" \
+  --start-date "2024-03-01" \
+  --end-date "2024-03-14"
+
+# Clear dates
+kanban sprint update 7c9e6679-7425-40de-944b-e07fc1f90ae7 \
+  --clear-start-date \
+  --clear-end-date
+```
+
+### Activate a Sprint
+
+Start a sprint and optionally set its duration:
+
+```bash
+kanban sprint activate <ID> [--duration-days <DAYS>]
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the sprint to activate.
+</ParamField>
+
+<ParamField path="--duration-days" type="integer">
+  Duration of the sprint in days (e.g., 14 for a 2-week sprint). Sets the start date to now and calculates the end date.
+</ParamField>
+
+#### Examples
+
+```bash
+# Activate sprint with 2-week duration
+kanban sprint activate 7c9e6679-7425-40de-944b-e07fc1f90ae7 --duration-days 14
+
+# Activate sprint without automatic dates
+kanban sprint activate 7c9e6679-7425-40de-944b-e07fc1f90ae7
+```
+
+The sprint status changes to "active" and only one sprint can be active per board at a time.
+
+### Complete a Sprint
+
+Mark a sprint as completed:
+
+```bash
+kanban sprint complete <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the sprint to complete.
+</ParamField>
+
+#### Example
+
+```bash
+kanban sprint complete 7c9e6679-7425-40de-944b-e07fc1f90ae7
+```
+
+The sprint status changes to "completed". Cards remain assigned to the sprint for historical tracking.
+
+### Cancel a Sprint
+
+Cancel a sprint:
+
+```bash
+kanban sprint cancel <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the sprint to cancel.
+</ParamField>
+
+#### Example
+
+```bash
+kanban sprint cancel 7c9e6679-7425-40de-944b-e07fc1f90ae7
+```
+
+The sprint status changes to "cancelled".
+
+### Delete a Sprint
+
+Permanently delete a sprint:
+
+```bash
+kanban sprint delete <ID>
+```
+
+<ParamField path="id" type="uuid" required>
+  The UUID of the sprint to delete.
+</ParamField>
+
+<Warning>
+  Deleting a sprint will unassign all cards from that sprint. This action is irreversible.
+</Warning>
+
+#### Example
+
+```bash
+kanban sprint delete 7c9e6679-7425-40de-944b-e07fc1f90ae7
+```
+
+## Sprint Lifecycle
+
+Sprints follow this lifecycle:
+
+1. **Planned** - Initial state after creation
+2. **Active** - Sprint is in progress (activated)
+3. **Completed** - Sprint finished successfully
+4. **Cancelled** - Sprint was terminated early
+
+```bash
+# Create sprint (status: planned)
+SPRINT_ID=$(kanban sprint create --board-id $BOARD_ID | jq -r '.id')
+
+# Activate sprint (status: active)
+kanban sprint activate $SPRINT_ID --duration-days 14
+
+# Complete sprint (status: completed)
+kanban sprint complete $SPRINT_ID
+```
+
+## Common Workflows
+
+### Start a New Sprint
+
+```bash
+# Create and activate sprint
+SPRINT_ID=$(kanban sprint create \
+  --board-id $BOARD_ID \
+  --name "Sprint $(date +%Y-%m-%d)" | jq -r '.id')
+
+kanban sprint activate $SPRINT_ID --duration-days 14
+
+# Assign cards to sprint
+kanban card list --board-id $BOARD_ID --column-id $BACKLOG_COLUMN_ID | \
+  jq -r '.[].id' | head -5 | \
+  xargs -I {} kanban card assign-sprint {} --sprint-id $SPRINT_ID
+```
+
+### Sprint Review
+
+```bash
+# Get sprint details
+kanban sprint get $SPRINT_ID
+
+# List all cards in sprint
+kanban card list --sprint-id $SPRINT_ID
+
+# Count completed cards
+COMPLETED=$(kanban card list --sprint-id $SPRINT_ID | \
+  jq '[.[] | select(.status == "done")] | length')
+
+TOTAL=$(kanban card list --sprint-id $SPRINT_ID | jq 'length')
+
+echo "Completed: $COMPLETED/$TOTAL cards"
+```
+
+### Sprint Cleanup
+
+```bash
+# Complete the sprint
+kanban sprint complete $SPRINT_ID
+
+# Move incomplete cards back to backlog
+kanban card list --sprint-id $SPRINT_ID | \
+  jq -r '.[] | select(.status != "done") | .id' | \
+  while read card_id; do
+    kanban card unassign-sprint $card_id
+    kanban card move $card_id --column-id $BACKLOG_COLUMN_ID
+  done
+```
+
+### View Sprint History
+
+```bash
+# List all completed sprints
+kanban sprint list --board-id $BOARD_ID | \
+  jq '.[] | select(.status == "completed")'
+
+# Get velocity (average points per sprint)
+kanban sprint list --board-id $BOARD_ID | \
+  jq -r '.[] | select(.status == "completed") | .id' | \
+  while read sprint_id; do
+    points=$(kanban card list --sprint-id $sprint_id | \
+      jq '[.[] | .points // 0] | add')
+    echo "Sprint $sprint_id: $points points"
+  done
+```

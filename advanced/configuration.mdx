@@ -1,0 +1,260 @@
+---
+title: Configuration
+description: Environment variables and configuration options
+icon: gear
+---
+
+## Overview
+
+Kanban CLI can be configured through environment variables and configuration files. Most settings have sensible defaults and do not require manual configuration.
+
+## Environment Variables
+
+### KANBAN_FILE
+
+Specifies the path to the kanban data file.
+
+```bash
+export KANBAN_FILE=myboard.json
+kanban  # Loads myboard.json
+```
+
+**Usage:**
+- Required for CLI operations (`kanban board list`, `kanban card create`, etc.)
+- Optional for TUI (can be passed as a positional argument)
+- Defaults to `kanban.json` in the current directory if not specified
+
+<CodeGroup>
+```bash CLI with KANBAN_FILE
+export KANBAN_FILE=~/projects/work.json
+kanban board list
+kanban card create --board-id <ID> --column-id <ID> --title "New task"
+```
+
+```bash TUI with positional argument
+kanban ~/projects/work.json
+```
+
+```bash TUI with KANBAN_FILE
+export KANBAN_FILE=~/projects/work.json
+kanban
+```
+</CodeGroup>
+
+### KANBAN_DEBUG_LOG
+
+Enables debug logging to a file. Useful for troubleshooting issues or understanding internal behavior.
+
+```bash
+export KANBAN_DEBUG_LOG=~/kanban-debug.log
+kanban
+```
+
+**Log Output:**
+The debug log includes:
+- File system events (load, save, watch)
+- State changes and command execution
+- Conflict detection and resolution
+- TUI navigation and mode transitions
+
+**Log Format:**
+```
+2026-03-05T10:30:45.123Z DEBUG [kanban_persistence::store] Atomically wrote 52480 bytes to /path/to/kanban.json
+2026-03-05T10:30:45.125Z DEBUG [kanban_tui::app] Mode transition: CardList -> CardDetail(card_id="abc123")
+2026-03-05T10:30:50.200Z DEBUG [kanban_persistence::watch] File change event sent to 1 receivers
+```
+
+<Warning>
+Debug logging can produce verbose output. Use only when needed for troubleshooting.
+</Warning>
+
+**Implementation:**
+
+```rust main.rs
+if let Ok(log_path) = std::env::var("KANBAN_DEBUG_LOG") {
+    let log_file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)?;
+
+    tracing_subscriber::fmt()
+        .with_writer(log_file)
+        .with_max_level(tracing::Level::DEBUG)
+        .with_target(true)
+        .with_thread_ids(true)
+        .with_file(true)
+        .with_line_number(true)
+        .with_ansi(false)
+        .init();
+}
+```
+
+## External Editor
+
+### $EDITOR Environment Variable
+
+Kanban CLI respects the `$EDITOR` environment variable for editing card descriptions and board settings in JSON format.
+
+```bash
+export EDITOR=vim
+# or
+export EDITOR=nvim
+# or
+export EDITOR=nano
+# or
+export EDITOR=emacs
+```
+
+**Automatic Detection:**
+If `$EDITOR` is not set, kanban automatically detects available editors in this order:
+1. `nvim` (Neovim)
+2. `vim`
+3. `nano`
+4. Falls back to system default
+
+**Usage in TUI:**
+- Press `e` on a card to edit its description in your preferred editor
+- Press `E` in board settings to edit board configuration as JSON
+- Press `P` in card detail view to edit card metadata as JSON
+
+<Tip>
+Editing card metadata as JSON allows you to update multiple fields at once:
+```json
+{
+  "title": "Updated title",
+  "status": "done",
+  "priority": "high",
+  "points": 3,
+  "due_date": "2026-03-15"
+}
+```
+</Tip>
+
+## Configuration File
+
+### Location
+
+The configuration file is located at:
+
+<Tabs>
+  <Tab title="Linux">
+    `~/.config/kanban/config.toml`
+  </Tab>
+  <Tab title="macOS">
+    `~/.config/kanban/config.toml`
+  </Tab>
+  <Tab title="Windows">
+    `%APPDATA%\kanban\config.toml`
+  </Tab>
+</Tabs>
+
+### AppConfig Structure
+
+The configuration is defined in `crates/kanban-core/src/config.rs`:
+
+```rust config.rs
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AppConfig {
+    #[serde(default)]
+    pub default_branch_prefix: Option<String>,
+}
+
+impl AppConfig {
+    pub fn effective_default_sprint_prefix(&self) -> &str {
+        self.default_branch_prefix.as_deref().unwrap_or("sprint")
+    }
+
+    pub fn effective_default_card_prefix(&self) -> &str {
+        self.default_branch_prefix.as_deref().unwrap_or("task")
+    }
+}
+```
+
+### Example Configuration
+
+```toml config.toml
+# Default prefix for sprint branch names
+default_branch_prefix = "sprint"
+```
+
+<Note>
+Currently, the only supported configuration option is `default_branch_prefix` for customizing sprint and card prefixes. Future versions may add more configuration options.
+</Note>
+
+## File Paths and Data Location
+
+### Default File Location
+
+When no path is specified:
+- **TUI mode**: Creates/loads `kanban.json` in the current working directory
+- **CLI mode**: Requires explicit path via `KANBAN_FILE` or `--file` argument
+
+### Supported Paths
+
+Kanban CLI supports both relative and absolute paths:
+
+```bash
+# Relative path
+kanban ./boards/work.json
+
+# Absolute path
+kanban /home/user/projects/kanban.json
+
+# Home directory expansion
+kanban ~/kanban-boards/personal.json
+```
+
+### File Creation
+
+If the specified file doesn't exist, kanban automatically creates an empty board file:
+
+```json Empty board structure
+{
+  "version": 2,
+  "metadata": {
+    "instance_id": "550e8400-e29b-41d4-a716-446655440000",
+    "saved_at": "2026-03-05T10:30:00Z"
+  },
+  "data": {
+    "boards": [],
+    "columns": [],
+    "cards": [],
+    "archived_cards": [],
+    "sprints": []
+  }
+}
+```
+
+## Platform-Specific Considerations
+
+### Linux
+
+**Clipboard Support:**
+For clipboard operations (`y`/`Y` to copy branch names), you need a clipboard manager:
+- **Wayland**: `wl-clip-persist`, `cliphist`, `clipman`
+- **X11**: Built-in with most desktop environments
+
+Without a clipboard manager, copied content is lost when the app exits.
+
+### macOS
+
+**File Watching:**
+macOS uses FSEvents for file watching. The watcher monitors the parent directory for better atomic write detection.
+
+### Windows
+
+**Path Separators:**
+Windows paths use backslashes (`\`). Kanban automatically handles path normalization.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Persistence" icon="floppy-disk" href="/advanced/persistence">
+    Learn about data storage and file formats
+  </Card>
+  <Card title="Multi-Instance" icon="clone" href="/advanced/multi-instance">
+    Configure multiple instances safely
+  </Card>
+</CardGroup>

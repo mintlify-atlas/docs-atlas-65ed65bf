@@ -1,0 +1,230 @@
+---
+title: Terminal UI Mode
+description: Interactive terminal interface for managing kanban boards with keyboard-driven navigation
+---
+
+## Overview
+
+The Terminal UI (TUI) mode is Kanban's primary interactive interface, inspired by [lazygit](https://github.com/jesseduffield/lazygit). It provides a fast, keyboard-driven experience for managing your kanban boards directly in your terminal.
+
+## Launching the TUI
+
+### Default Mode
+
+Start the TUI with in-memory data:
+
+```bash
+kanban
+```
+
+### Load from File
+
+Load an existing board from a JSON file:
+
+```bash
+kanban myboard.json
+```
+
+The file will be watched for changes, and modifications will auto-save as you work.
+
+## Interface Layout
+
+The TUI is organized into multiple panel-based views:
+
+### Main View (Normal Mode)
+
+- **Left Panel**: Board list showing all your projects
+- **Right Panel**: Card list displaying tasks for the selected board
+- **Bottom Bar**: Context-aware keyboard shortcuts
+- **Banner**: Success/error messages and notifications
+
+### Board Detail View
+
+When you open a board (press `Enter` on a board):
+
+- **Name Panel**: Board name and metadata
+- **Description Panel**: Board description
+- **Settings Panel**: Configuration options
+- **Sprints Panel**: Sprint management
+- **Columns Panel**: Column configuration
+
+### Card Detail View
+
+When you open a card (press `Enter` on a card):
+
+- **Title Panel**: Card title and ID
+- **Metadata Panel**: Priority, points, due date, status
+- **Description Panel**: Full card description
+- **Parents Panel**: Parent card dependencies
+- **Children Panel**: Child card relationships
+
+## Basic Navigation
+
+Kanban uses Vim-like keybindings for navigation:
+
+<Card title="Core Navigation Keys" icon="keyboard">
+- `j` / `k` - Move down/up in lists
+- `h` / `l` - Move between columns or panels
+- `1-9` - Jump to specific panel
+- `gg` - Jump to top of list
+- `G` - Jump to bottom of list
+- `{` / `}` - Jump half viewport up/down
+</Card>
+
+<Tip>
+Press `?` at any time to view all available keyboard shortcuts for your current context.
+</Tip>
+
+## Common Workflows
+
+### Creating Your First Board
+
+1. Launch kanban: `kanban`
+2. Press `n` to create a new board
+3. Enter a board name and press `Enter`
+4. Press `Enter` to activate the board
+
+The board will be created with default columns: **Todo**, **In Progress**, and **Done**.
+
+### Adding Cards
+
+1. Focus the tasks panel (press `2` or `l`)
+2. Press `n` to create a new card
+3. Enter the card title and press `Enter`
+4. Optionally fill in description, priority, points, and due date
+5. Press `Enter` to save
+
+### Organizing Cards
+
+**Move cards between columns:**
+- `H` - Move card to left column
+- `L` - Move card to right column
+- `h` / `l` - Navigate to adjacent column
+
+**Change card status:**
+- `c` - Toggle card completion (done/not done)
+- `p` - Set priority (low, medium, high, critical)
+- `a` - Assign to sprint
+
+**Archive or delete:**
+- `d` - Archive card
+- `D` - View archived cards
+- `r` - Restore archived card (in archived view)
+- `x` - Permanently delete archived card
+
+### Working with Multiple Views
+
+Switch between different view modes to match your workflow:
+
+```bash
+V  # Cycle through view modes
+```
+
+See [Views](/guide/views) for detailed information on each view type.
+
+### Searching and Filtering
+
+**Search:**
+```bash
+/  # Activate search mode
+```
+Type your query and press `Enter`. Press `Esc` to clear.
+
+**Filter by sprint:**
+```bash
+t  # Toggle sprint filter
+T  # Open filter options dialog
+```
+
+### Sorting Cards
+
+```bash
+o  # Open sort menu (by priority, points, date, status, position)
+O  # Toggle sort order (ascending/descending)
+```
+
+### Undo and Redo
+
+```bash
+u  # Undo last action
+U  # Redo last undone action
+```
+
+All actions are tracked in an undo/redo history stack.
+
+## Export and Import
+
+**Export current board:**
+```bash
+x  # Export board to JSON file
+```
+
+**Export all boards:**
+```bash
+X  # Export all boards to single JSON file
+```
+
+**Import board:**
+```bash
+i  # Import board from JSON file
+```
+
+## Clipboard Operations
+
+Copy branch names for Git integration:
+
+```bash
+y  # Copy branch name to clipboard (format: prefix/card-id/card-title)
+Y  # Copy git checkout command
+```
+
+<Note>
+**Linux clipboard support** requires a clipboard manager:
+- **Wayland**: `wl-clip-persist`, `cliphist`, `clipman`
+- **X11**: Built-in with most desktop environments
+
+Without a clipboard manager, copied content is lost when the app exits (Linux platform limitation).
+</Note>
+
+## File Watching and Auto-Save
+
+When you load a file, Kanban automatically:
+
+- **Watches for external changes**: Detects modifications from other instances
+- **Auto-saves on every action**: Changes persist immediately
+- **Handles conflicts**: Prompts you when external changes conflict with local edits
+- **Uses atomic writes**: Prevents data corruption on crashes
+
+## Quick Tips
+
+<CardGroup cols={2}>
+  <Card title="Panel Navigation" icon="arrows-split-up-and-left">
+    Press `1` to focus boards, `2` to focus tasks. In detail views, use `1-5` to jump between panels.
+  </Card>
+  <Card title="Bulk Operations" icon="list-check">
+    Press `v` to enter selection mode, select multiple cards with `j/k`, then `Ctrl+a` to select all visible cards.
+  </Card>
+  <Card title="External Editor" icon="pen-to-square">
+    Press `e` on a card description to open in your configured editor (`$EDITOR`, vim, nvim, or nano).
+  </Card>
+  <Card title="Help Menu" icon="circle-question">
+    Stuck? Press `?` to see all available commands for your current context.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/guide/keyboard-shortcuts">
+    Complete reference of all keyboard bindings
+  </Card>
+  <Card title="View Modes" icon="table-cells" href="/guide/views">
+    Learn about flat, grouped, and kanban view layouts
+  </Card>
+  <Card title="CLI Mode" icon="terminal" href="/guide/cli">
+    Use kanban from scripts and automation
+  </Card>
+  <Card title="Development" icon="code" href="/development/architecture">
+    Architecture and contribution guidelines
+  </Card>
+</CardGroup>

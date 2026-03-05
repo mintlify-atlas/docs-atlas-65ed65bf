@@ -1,0 +1,342 @@
+---
+title: View Modes
+description: Switch between flat list, grouped by column, and kanban board layouts
+---
+
+## Overview
+
+Kanban provides three different view modes to match your workflow. Switch between them at any time by pressing `V`.
+
+Each view mode offers a different way to visualize and organize your cards:
+
+- **Flat List**: Simple linear list with all card details
+- **Grouped by Column**: Cards organized under column headers
+- **Kanban Board**: Classic columnar layout for visual workflow
+
+<Tip>
+Press `V` to cycle through view modes. Your selection persists per board.
+</Tip>
+
+## Flat List View
+
+### Overview
+
+The flat list view displays all cards in a single vertical list with complete details visible at a glance.
+
+### Layout
+
+```
+┌─ Tasks ──────────────────────────────────────┐
+│ [TODO] Card Title                            │
+│   ✓ high priority • 3 pts • Due: 2024-12-31 │
+│   Column: Todo                               │
+│                                              │
+│ [TODO] Another Card                          │
+│   ✓ medium • 5 pts                           │
+│   Column: In Progress                        │
+│                                              │
+│ [DONE] Completed Task                        │
+│   ✓ 2 pts                                    │
+│   Column: Done                               │
+└──────────────────────────────────────────────┘
+```
+
+### Features
+
+- **All details visible**: Title, status, priority, points, due date, column
+- **Simple navigation**: Use `j`/`k` to move up and down
+- **Search-friendly**: Easy to scan all cards at once
+- **Sorting**: Cards respect global sort order (by priority, points, date, etc.)
+
+### Best Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Search and Filter" icon="magnifying-glass">
+    Quickly scan all cards when searching or filtering by sprint.
+  </Card>
+  <Card title="Review and Planning" icon="list-check">
+    See complete card information for sprint planning or retrospectives.
+  </Card>
+  <Card title="Priority Management" icon="arrow-up-wide-short">
+    View all cards sorted by priority or points to identify what needs attention.
+  </Card>
+  <Card title="Bulk Selection" icon="square-check">
+    Easily select multiple cards for bulk operations.
+  </Card>
+</CardGroup>
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Move up/down in list |
+| `gg` | Jump to top |
+| `G` | Jump to bottom |
+| `{` / `}` | Jump half viewport up/down |
+| `Enter` | Open card details |
+
+## Grouped by Column View
+
+### Overview
+
+The grouped view organizes cards under their respective column headers, providing structure while maintaining detailed information.
+
+### Layout
+
+```
+┌─ Tasks ──────────────────────────────────────┐
+│                                              │
+│ ▼ Todo (3 cards)                             │
+│   [TODO] First card                          │
+│     ✓ high • 3 pts                           │
+│   [TODO] Second card                         │
+│     ✓ medium • 5 pts                         │
+│   [TODO] Third card                          │
+│     ✓ 2 pts                                  │
+│                                              │
+│ ▼ In Progress (1 card)                       │
+│   [TODO] Active task                         │
+│     ✓ high • 8 pts                           │
+│                                              │
+│ ▼ Done (2 cards)                             │
+│   [DONE] Completed task                      │
+│     ✓ 2 pts                                  │
+│   [DONE] Another done                        │
+│     ✓ 1 pt                                   │
+└──────────────────────────────────────────────┘
+```
+
+### Features
+
+- **Structured organization**: Cards grouped under column headers
+- **Column counts**: See how many cards in each column
+- **Column navigation**: Use `h`/`l` to jump between column groups
+- **Collapsible groups**: Focus on specific columns
+- **Detailed metadata**: Full card information visible
+
+### Best Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Status Tracking" icon="bars-progress">
+    Monitor how many cards are in each workflow stage.
+  </Card>
+  <Card title="WIP Limits" icon="gauge-high">
+    See if columns are over their work-in-progress limits.
+  </Card>
+  <Card title="Flow Analysis" icon="chart-line">
+    Identify bottlenecks by seeing card distribution across columns.
+  </Card>
+  <Card title="Hybrid View" icon="table-cells">
+    Balance between list detail and kanban structure.
+  </Card>
+</CardGroup>
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Move up/down within column |
+| `h` / `l` | Jump to previous/next column |
+| `gg` | Jump to top of first column |
+| `G` | Jump to bottom of last column |
+| `Enter` | Open card details |
+
+## Kanban Board View
+
+### Overview
+
+The classic kanban board layout displays columns side-by-side with cards shown as compact items within each column.
+
+### Layout
+
+```
+┌─ Todo (3) ──┬─ In Progress (1) ─┬─ Done (2) ──┐
+│             │                    │             │
+│ First card  │ Active task        │ Completed   │
+│ high • 3pts │ high • 8pts        │ 2pts        │
+│             │                    │             │
+│ Second card │                    │ Another     │
+│ med • 5pts  │                    │ 1pt         │
+│             │                    │             │
+│ Third card  │                    │             │
+│ 2pts        │                    │             │
+└─────────────┴────────────────────┴─────────────┘
+```
+
+### Features
+
+- **Visual workflow**: See your entire workflow at a glance
+- **Side-by-side columns**: Multiple columns visible simultaneously
+- **Compact cards**: More cards visible per screen
+- **Quick card movement**: Easily see where cards can move
+- **Board overview**: Immediate understanding of workflow state
+
+### Best Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Daily Standup" icon="users">
+    Perfect for team meetings to visualize work distribution.
+  </Card>
+  <Card title="Visual Workflow" icon="diagram-project">
+    See the entire workflow state at a glance.
+  </Card>
+  <Card title="Quick Triage" icon="gauge-simple-high">
+    Rapidly move cards between columns during planning.
+  </Card>
+  <Card title="Classic Kanban" icon="table-columns">
+    Traditional kanban board experience for agile teams.
+  </Card>
+</CardGroup>
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Move up/down within column |
+| `h` / `l` | Move to adjacent column |
+| `H` / `L` | Move card to left/right column |
+| `1-9` | Jump directly to column N |
+| `Enter` | Open card details |
+
+### Column Indicators
+
+Columns may show additional indicators:
+
+- **Card count**: Number of cards in column (shown in header)
+- **WIP limit**: Visual indicator when limit is exceeded
+- **Empty state**: Placeholder when column has no cards
+
+## Switching Views
+
+### Keyboard Shortcut
+
+```
+V  # Cycle through views: Flat → Grouped → Kanban → Flat
+```
+
+### View Selection Dialog
+
+In some contexts, pressing `V` opens a dialog where you can select the view:
+
+1. Press `V` to open view selection
+2. Use `j`/`k` to navigate options
+3. Press `Enter` to select
+
+Available options:
+- **Flat List**
+- **Grouped by Column**
+- **Kanban Board**
+
+### Persistence
+
+Your view preference is remembered per board and persists across sessions.
+
+## View Comparison
+
+| Feature | Flat List | Grouped | Kanban |
+|---------|-----------|---------|--------|
+| **Detail Level** | High | High | Medium |
+| **Cards per Screen** | Medium | Medium | High |
+| **Column Visibility** | Text only | Headers | Full columns |
+| **Best for Search** | ✓ | ✓ | — |
+| **Best for Workflow** | — | ✓ | ✓ |
+| **Best for Detail** | ✓ | ✓ | — |
+| **Best for Overview** | — | — | ✓ |
+
+## Tips for Each View
+
+### Flat List Tips
+
+<Steps>
+  <Step title="Use with Search">
+    Activate search with `/` to quickly filter cards, then scan the flat list for matches.
+  </Step>
+  <Step title="Sort Strategically">
+    Press `o` to sort by priority, points, or due date. The flat list makes sorted order obvious.
+  </Step>
+  <Step title="Bulk Operations">
+    Use `v` to select multiple cards across different columns easily.
+  </Step>
+</Steps>
+
+### Grouped View Tips
+
+<Steps>
+  <Step title="Monitor Column Balance">
+    Check card counts in each column header to identify bottlenecks.
+  </Step>
+  <Step title="Navigate Efficiently">
+    Use `h`/`l` to jump between column groups instead of scrolling.
+  </Step>
+  <Step title="Focus on Stage">
+    Concentrate on one column group at a time during focused work.
+  </Step>
+</Steps>
+
+### Kanban View Tips
+
+<Steps>
+  <Step title="Quick Card Movement">
+    Use `H`/`L` to rapidly move cards between columns during triage.
+  </Step>
+  <Step title="Jump to Columns">
+    Press `1-9` to jump directly to specific columns without navigation.
+  </Step>
+  <Step title="Overview Mode">
+    Use this view for standups and high-level workflow visualization.
+  </Step>
+</Steps>
+
+## Combining with Other Features
+
+### Search + Views
+
+Search works across all view modes:
+
+```bash
+/  # Activate search
+```
+
+Then switch views to see filtered results in different layouts.
+
+### Sprint Filter + Views
+
+Combine sprint filtering with views:
+
+```bash
+t  # Toggle sprint filter
+V  # Switch to kanban view to see sprint cards
+```
+
+### Sorting + Views
+
+Apply sorting in any view:
+
+```bash
+o  # Sort by field (priority, points, date)
+V  # Switch views to see sorted results differently
+```
+
+## Archived Cards View
+
+All three view modes are available when viewing archived cards (press `D`):
+
+- **Flat List**: See all archived cards with archive timestamps
+- **Grouped**: View archived cards organized by their original column
+- **Kanban**: Visual layout showing where archived cards came from
+
+Press `V` to cycle through views even in archived mode.
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="TUI Guide" icon="terminal" href="/guide/tui">
+    Learn the terminal interface
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/guide/keyboard-shortcuts">
+    Master all keyboard bindings
+  </Card>
+  <Card title="CLI Mode" icon="code" href="/guide/cli">
+    Automate with CLI commands
+  </Card>
+</CardGroup>

@@ -1,0 +1,358 @@
+---
+title: Dependencies
+description: Card relationships, blocking dependencies, and parent-child hierarchies in Kanban CLI
+---
+
+## Overview
+
+Dependencies represent relationships between cards. Kanban CLI supports three types of relationships: **blocking dependencies** (one card must complete before another can start), **parent-child hierarchies** (organizational grouping), and **general relations** (informational links).
+
+## Dependency Graph
+
+The dependency system is built on a generic graph structure:
+
+```rust
+pub struct DependencyGraph {
+    pub cards: CardDependencyGraph,
+    // Future: sprints, boards
+}
+
+pub type CardDependencyGraph = Graph<CardEdgeType>;
+```
+
+<Info>
+  The graph structure is designed for future expansion to include sprint and board dependencies.
+</Info>
+
+## Edge Types
+
+Three types of relationships are supported:
+
+```rust
+pub enum CardEdgeType {
+    /// This card blocks the target (must complete before target can start)
+    /// Enforces DAG - no cycles allowed
+    Blocks,
+    
+    /// General relationship (informational, allows cycles)
+    RelatesTo,
+    
+    /// Organizational grouping - parent contains child
+    /// Enforces DAG - no cycles allowed (can't be own ancestor)
+    ParentOf,
+}
+```
+
+### Cycle Prevention
+
+Some edge types enforce acyclic constraints:
+
+```rust
+// Blocks and ParentOf require DAG (no cycles)
+assert!(CardEdgeType::Blocks.requires_dag());
+assert!(CardEdgeType::ParentOf.requires_dag());
+
+// RelatesTo allows cycles
+assert!(CardEdgeType::RelatesTo.allows_cycles());
+```
+
+<Warning>
+  Attempting to create a cycle with `Blocks` or `ParentOf` edges will return a `CycleDetected` error.
+</Warning>
+
+## Blocking Relationships
+
+Blocking dependencies enforce completion order:
+
+### Adding a Block
+
+```rust
+// Card A must complete before Card B can start
+graph.add_blocks(card_a, card_b)?;
+
+// Prevents cycles
+graph.add_blocks(card_b, card_c)?;
+graph.add_blocks(card_c, card_a)?; // Error: CycleDetected
+```
+
+### Querying Blockers
+
+```rust
+// Get all cards blocking a given card
+let blockers = graph.blockers(card_b);
+assert!(blockers.contains(&card_a));
+
+// Get all cards blocked by a given card
+let blocked = graph.blocked_by(card_a);
+assert!(blocked.contains(&card_b));
+```
+
+### Checking if Card Can Start
+
+```rust
+// Check if all blocking cards are complete
+let can_start = graph.can_start(card_c, |id| {
+    cards.iter()
+        .find(|c| c.id == id)
+        .map(|c| c.is_completed())
+        .unwrap_or(false)
+});
+
+if can_start {
+    println!("Card C ready to start!");
+}
+```
+
+<Tip>
+  Use blocking relationships to model technical dependencies: "Can't deploy until tests pass" or "Can't implement feature B until API from feature A is ready."
+</Tip>
+
+## Parent-Child Relationships
+
+Parent-child edges create organizational hierarchies:
+
+### Setting Parents
+
+```rust
+// Card B becomes a child of Card A
+graph.set_parent(card_b, card_a)?;
+
+// Multiple children allowed
+graph.set_parent(card_c, card_a)?;
+graph.set_parent(card_d, card_a)?;
+
+assert_eq!(graph.children(card_a).len(), 3);
+```
+
+### Querying Hierarchy
+
+```rust
+// Get direct children
+let children = graph.children(parent_id);
+
+// Get direct parents
+let parents = graph.parents(child_id);
+
+// Get all ancestors (parents, grandparents, etc.)
+let ancestors = graph.ancestors(child_id);
+
+// Get all descendants (children, grandchildren, etc.)
+let descendants = graph.descendants(parent_id);
+
+// Count direct children (for [N] badge)
+let count = graph.child_count(parent_id);
+```
+
+### Removing Parent Relationships
+
+```rust
+// Remove specific parent-child link
+graph.remove_parent(child_id, parent_id)?;
+
+// Returns EdgeNotFound if relationship doesn't exist
+```
+
+### Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Epic Breakdown" icon="diagram-subtask">
+    Large epic card with smaller implementation cards as children
+  </Card>
+  <Card title="Feature Sets" icon="folder-tree">
+    Group related features under a parent feature card
+  </Card>
+  <Card title="Bug Tracking" icon="bug">
+    Parent bug card with multiple reproduction scenario cards
+  </Card>
+  <Card title="Research" icon="flask">
+    Research task with specific investigation areas as children
+  </Card>
+</CardGroup>
+
+## General Relations
+
+RelatesTo creates bidirectional informational links:
+
+```rust
+// Create bidirectional relationship
+graph.add_relates_to(card_a, card_b)?;
+
+// Both cards see the relationship
+assert!(graph.related(card_a).contains(&card_b));
+assert!(graph.related(card_b).contains(&card_a));
+
+// Allows cycles
+graph.add_relates_to(card_b, card_c)?;
+graph.add_relates_to(card_c, card_a)?; // OK - cycles allowed
+```
+
+<Note>
+  Use RelatesTo for informational links like "See also" or "Related to" without enforcing ordering.
+</Note>
+
+## Cascade Cleanup
+
+When cards are deleted or archived, their dependencies are cleaned up:
+
+### Archiving
+
+```rust
+// Archive all edges for a card (soft delete)
+graph.archive_card_edges(card_id);
+
+// Archived edges are excluded from queries
+assert_eq!(graph.blockers(card_id).len(), 0);
+
+// Can be restored
+graph.unarchive_node(card_id);
+assert_eq!(graph.blockers(card_id).len(), 1);
+```
+
+### Permanent Deletion
+
+```rust
+// Remove all edges permanently
+graph.remove_card_edges(card_id);
+
+// All incoming and outgoing edges deleted
+assert_eq!(graph.blockers(card_id).len(), 0);
+assert_eq!(graph.blocked_by(card_id).len(), 0);
+assert_eq!(graph.children(card_id).len(), 0);
+assert_eq!(graph.parents(card_id).len(), 0);
+```
+
+<Warning>
+  Permanent deletion is irreversible. Use archiving for recoverable removal.
+</Warning>
+
+## Error Handling
+
+Dependency operations return Result types:
+
+```rust
+use kanban_core::KanbanError;
+
+match graph.add_blocks(card_a, card_b) {
+    Ok(()) => println!("Dependency added"),
+    Err(KanbanError::CycleDetected) => {
+        println!("Would create cycle");
+    }
+    Err(KanbanError::SelfReference) => {
+        println!("Can't block self");
+    }
+    Err(e) => println!("Error: {:?}", e),
+}
+```
+
+### Common Errors
+
+- **CycleDetected**: Operation would create a cycle in a DAG-enforced edge type
+- **SelfReference**: Card cannot have relationship with itself
+- **EdgeNotFound**: Attempted to remove non-existent edge
+
+## Edge Metadata
+
+Edges carry metadata:
+
+```rust
+pub struct Edge<E> {
+    pub source: Uuid,
+    pub target: Uuid,
+    pub edge_type: E,
+    pub direction: EdgeDirection,
+    pub weight: Option<f64>,
+    pub created_at: DateTime<Utc>,
+    pub archived_at: Option<DateTime<Utc>>,
+}
+
+pub enum EdgeDirection {
+    Directed,      // One-way (Blocks, ParentOf)
+    Bidirectional, // Two-way (RelatesTo)
+}
+```
+
+## Cycle Detection
+
+The graph implements cycle detection algorithms:
+
+```rust
+// Check if adding edge would create cycle
+if graph.would_create_cycle(source, target) {
+    return Err(KanbanError::CycleDetected);
+}
+
+// Find all reachable nodes
+let reachable = graph.reachable_from(start_node);
+```
+
+<Info>
+  Cycle detection uses breadth-first search and runs in O(V + E) time where V is vertices and E is edges.
+</Info>
+
+## Practical Examples
+
+### Epic with Subtasks
+
+```rust
+let epic = create_card("Implement User Auth");
+let subtask1 = create_card("Design auth schema");
+let subtask2 = create_card("Implement login");
+let subtask3 = create_card("Add password reset");
+
+// Create hierarchy
+graph.set_parent(subtask1, epic)?;
+graph.set_parent(subtask2, epic)?;
+graph.set_parent(subtask3, epic)?;
+
+// subtask2 depends on subtask1
+graph.add_blocks(subtask1, subtask2)?;
+
+println!("Epic has {} subtasks", graph.child_count(epic));
+```
+
+### Dependency Chain
+
+```rust
+let design = create_card("Design API");
+let implement = create_card("Implement API");
+let test = create_card("Test API");
+let document = create_card("Document API");
+
+// Linear dependency chain
+graph.add_blocks(design, implement)?;
+graph.add_blocks(implement, test)?;
+graph.add_blocks(test, document)?;
+
+// Check what's ready
+for card in cards {
+    if graph.can_start(card.id, |id| is_complete(id)) {
+        println!("Ready: {}", card.title);
+    }
+}
+```
+
+### Cross-Feature Dependencies
+
+```rust
+let feature_a = create_card("Feature A");
+let feature_b = create_card("Feature B");
+let integration = create_card("Integration Test");
+
+// Integration depends on both features
+graph.add_blocks(feature_a, integration)?;
+graph.add_blocks(feature_b, integration)?;
+
+// Features are related but independent
+graph.add_relates_to(feature_a, feature_b)?;
+```
+
+## Related Concepts
+
+<CardGroup cols={2}>
+  <Card title="Cards" icon="rectangle-history" href="/concepts/cards">
+    Learn about card structure and operations
+  </Card>
+  <Card title="Undo/Redo" icon="rotate-left" href="/concepts/undo-redo">
+    Revert dependency changes
+  </Card>
+</CardGroup>

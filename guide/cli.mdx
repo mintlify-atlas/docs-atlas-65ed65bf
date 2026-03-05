@@ -1,0 +1,441 @@
+---
+title: CLI Mode
+description: Command-line interface for scripting and automation with JSON output
+---
+
+## Overview
+
+The CLI mode provides a scriptable interface to Kanban operations. All commands output JSON for easy parsing and integration with other tools.
+
+## Configuration
+
+### KANBAN_FILE Environment Variable
+
+Set the data file path to avoid passing it to every command:
+
+```bash
+export KANBAN_FILE=myboard.json
+```
+
+Alternatively, pass the file path directly:
+
+```bash
+kanban myboard.json board list
+```
+
+## JSON Output Format
+
+All CLI commands return JSON. This makes it easy to parse results with `jq` or other tools.
+
+**Example output:**
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "My Project",
+    "description": "Project description",
+    "created_at": "2024-01-15T10:30:00Z",
+    "columns": [
+      {"id": "...", "name": "Todo", "position": 0},
+      {"id": "...", "name": "In Progress", "position": 1},
+      {"id": "...", "name": "Done", "position": 2}
+    ]
+  }
+]
+```
+
+## Command Structure
+
+Commands follow this pattern:
+
+```bash
+kanban [FILE] <RESOURCE> <ACTION> [OPTIONS]
+```
+
+- `FILE` - Optional data file path (or use `KANBAN_FILE`)
+- `RESOURCE` - `board`, `card`, `column`, `sprint`, `export`, `import`
+- `ACTION` - `list`, `create`, `update`, `delete`, etc.
+- `OPTIONS` - Resource-specific flags
+
+## Board Operations
+
+### List Boards
+
+```bash
+kanban board list
+```
+
+### Create Board
+
+```bash
+kanban board create --name "My Project"
+kanban board create --name "My Project" --card-prefix "PROJ"
+```
+
+### Get Board
+
+```bash
+kanban board get <BOARD_ID>
+```
+
+### Update Board
+
+```bash
+kanban board update <BOARD_ID> --name "New Name"
+kanban board update <BOARD_ID> --description "Updated description"
+kanban board update <BOARD_ID> --card-prefix "NEWPREFIX"
+kanban board update <BOARD_ID> --sprint-prefix "SPRINT"
+```
+
+### Delete Board
+
+```bash
+kanban board delete <BOARD_ID>
+```
+
+## Card Operations
+
+### List Cards
+
+```bash
+# All cards in a board
+kanban card list --board-id <BOARD_ID>
+
+# Cards in a specific column
+kanban card list --column-id <COLUMN_ID>
+
+# Cards in a sprint
+kanban card list --sprint-id <SPRINT_ID>
+
+# Archived cards
+kanban card list --board-id <BOARD_ID> --archived
+
+# Filter by status
+kanban card list --board-id <BOARD_ID> --status done
+```
+
+### Create Card
+
+```bash
+kanban card create \
+  --board-id <BOARD_ID> \
+  --column-id <COLUMN_ID> \
+  --title "New task"
+
+kanban card create \
+  --board-id <BOARD_ID> \
+  --column-id <COLUMN_ID> \
+  --title "New task" \
+  --description "Task description" \
+  --priority high \
+  --points 3 \
+  --due-date "2024-12-31"
+```
+
+### Get Card
+
+```bash
+kanban card get <CARD_ID>
+```
+
+### Update Card
+
+```bash
+kanban card update <CARD_ID> --title "Updated title"
+kanban card update <CARD_ID> --status done
+kanban card update <CARD_ID> --priority high
+kanban card update <CARD_ID> --points 5
+kanban card update <CARD_ID> --due-date "2024-12-31"
+kanban card update <CARD_ID> --clear-due-date
+```
+
+### Move Card
+
+```bash
+kanban card move <CARD_ID> --column-id <COLUMN_ID>
+kanban card move <CARD_ID> --column-id <COLUMN_ID> --position 0
+```
+
+### Archive and Restore
+
+```bash
+# Archive a card
+kanban card archive <CARD_ID>
+
+# Restore to original column
+kanban card restore <CARD_ID>
+
+# Restore to specific column
+kanban card restore <CARD_ID> --column-id <COLUMN_ID>
+
+# Permanently delete
+kanban card delete <CARD_ID>
+```
+
+### Sprint Assignment
+
+```bash
+# Assign card to sprint
+kanban card assign-sprint <CARD_ID> --sprint-id <SPRINT_ID>
+
+# Unassign from sprint
+kanban card unassign-sprint <CARD_ID>
+```
+
+### Git Integration
+
+```bash
+# Get branch name
+kanban card branch-name <CARD_ID>
+# Output: "feature/PROJ-123/task-title"
+
+# Get git checkout command
+kanban card git-checkout <CARD_ID>
+# Output: "git checkout -b feature/PROJ-123/task-title"
+```
+
+### Bulk Operations
+
+```bash
+# Archive multiple cards
+kanban card bulk-archive --ids <ID1>,<ID2>,<ID3>
+
+# Move multiple cards
+kanban card bulk-move --ids <ID1>,<ID2> --column-id <COLUMN_ID>
+
+# Assign multiple cards to sprint
+kanban card bulk-assign-sprint --ids <ID1>,<ID2> --sprint-id <SPRINT_ID>
+```
+
+## Column Operations
+
+### List Columns
+
+```bash
+kanban column list --board-id <BOARD_ID>
+```
+
+### Create Column
+
+```bash
+kanban column create --board-id <BOARD_ID> --name "Review"
+kanban column create --board-id <BOARD_ID> --name "Review" --position 2
+```
+
+### Update Column
+
+```bash
+kanban column update <COLUMN_ID> --name "In Review"
+kanban column update <COLUMN_ID> --wip-limit 5
+kanban column update <COLUMN_ID> --clear-wip-limit
+```
+
+### Reorder Column
+
+```bash
+kanban column reorder <COLUMN_ID> --position 1
+```
+
+### Delete Column
+
+```bash
+kanban column delete <COLUMN_ID>
+```
+
+## Sprint Operations
+
+### List Sprints
+
+```bash
+kanban sprint list --board-id <BOARD_ID>
+```
+
+### Create Sprint
+
+```bash
+kanban sprint create --board-id <BOARD_ID>
+kanban sprint create --board-id <BOARD_ID> --prefix "SPRINT" --name "Q1 2024"
+```
+
+### Update Sprint
+
+```bash
+kanban sprint update <SPRINT_ID> --name "Sprint 1"
+kanban sprint update <SPRINT_ID> --prefix "S1"
+kanban sprint update <SPRINT_ID> --card-prefix "S1"
+kanban sprint update <SPRINT_ID> --start-date "2024-01-01" --end-date "2024-01-14"
+kanban sprint update <SPRINT_ID> --clear-start-date
+```
+
+### Activate Sprint
+
+```bash
+kanban sprint activate <SPRINT_ID>
+kanban sprint activate <SPRINT_ID> --duration-days 14
+```
+
+### Complete Sprint
+
+```bash
+kanban sprint complete <SPRINT_ID>
+```
+
+### Cancel Sprint
+
+```bash
+kanban sprint cancel <SPRINT_ID>
+```
+
+### Delete Sprint
+
+```bash
+kanban sprint delete <SPRINT_ID>
+```
+
+## Export and Import
+
+### Export Board
+
+```bash
+kanban export --board-id <BOARD_ID> > board.json
+```
+
+### Export All Boards
+
+```bash
+kanban export > all-boards.json
+```
+
+### Import Board
+
+```bash
+kanban import --file board.json
+```
+
+## Shell Completions
+
+Generate shell completion scripts:
+
+```bash
+# Bash
+kanban completions bash > ~/.local/share/bash-completion/completions/kanban
+
+# Zsh
+kanban completions zsh > ~/.zsh/completions/_kanban
+
+# Fish
+kanban completions fish > ~/.config/fish/completions/kanban.fish
+
+# PowerShell
+kanban completions powershell > kanban.ps1
+```
+
+## Scripting Examples
+
+### Create a Board with Cards
+
+```bash
+#!/bin/bash
+export KANBAN_FILE=project.json
+
+# Create board
+BOARD_ID=$(kanban board create --name "My Project" | jq -r '.id')
+
+# Get default columns
+TODO_ID=$(kanban column list --board-id "$BOARD_ID" | jq -r '.[] | select(.name=="Todo") | .id')
+
+# Create cards
+kanban card create --board-id "$BOARD_ID" --column-id "$TODO_ID" --title "Task 1"
+kanban card create --board-id "$BOARD_ID" --column-id "$TODO_ID" --title "Task 2" --priority high
+kanban card create --board-id "$BOARD_ID" --column-id "$TODO_ID" --title "Task 3" --points 5
+
+echo "Board created with ID: $BOARD_ID"
+```
+
+### Generate Sprint Report
+
+```bash
+#!/bin/bash
+export KANBAN_FILE=project.json
+
+SPRINT_ID="$1"
+
+# Get sprint cards
+CARDS=$(kanban card list --sprint-id "$SPRINT_ID")
+
+# Calculate statistics
+TOTAL=$(echo "$CARDS" | jq 'length')
+COMPLETED=$(echo "$CARDS" | jq '[.[] | select(.status=="done")] | length')
+TOTAL_POINTS=$(echo "$CARDS" | jq '[.[] | .points // 0] | add')
+COMPLETED_POINTS=$(echo "$CARDS" | jq '[.[] | select(.status=="done") | .points // 0] | add')
+
+echo "Sprint Report:"
+echo "  Total Cards: $TOTAL"
+echo "  Completed: $COMPLETED"
+echo "  Total Points: $TOTAL_POINTS"
+echo "  Completed Points: $COMPLETED_POINTS"
+```
+
+### Move All High Priority Cards
+
+```bash
+#!/bin/bash
+export KANBAN_FILE=project.json
+
+BOARD_ID="$1"
+TARGET_COLUMN_ID="$2"
+
+# Get all high priority cards
+CARD_IDS=$(kanban card list --board-id "$BOARD_ID" | \
+  jq -r '.[] | select(.priority=="high") | .id')
+
+# Move them
+for CARD_ID in $CARD_IDS; do
+  kanban card move "$CARD_ID" --column-id "$TARGET_COLUMN_ID"
+  echo "Moved card $CARD_ID"
+done
+```
+
+### Daily Standup Report
+
+```bash
+#!/bin/bash
+export KANBAN_FILE=project.json
+
+BOARD_ID="$1"
+
+echo "=== Daily Standup Report ==="
+echo ""
+
+echo "In Progress:"
+kanban card list --board-id "$BOARD_ID" --status in_progress | \
+  jq -r '.[] | "  - " + .title +" (" + (.priority // "none") + ")"'
+
+echo ""
+echo "Blocked:"
+kanban card list --board-id "$BOARD_ID" --status blocked | \
+  jq -r '.[] | "  - " + .title'
+
+echo ""
+echo "Completed Today:"
+kanban card list --board-id "$BOARD_ID" --status done | \
+  jq --arg today "$(date +%Y-%m-%d)" -r \
+    '.[] | select(.updated_at | startswith($today)) | "  - " + .title'
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="TUI Mode" icon="terminal" href="/guide/tui">
+    Interactive terminal interface guide
+  </Card>
+  <Card title="CLI Reference" icon="code" href="/cli/overview">
+    Detailed CLI command reference
+  </Card>
+  <Card title="MCP Server" icon="server" href="/advanced/mcp-server">
+    Model Context Protocol for LLM integration
+  </Card>
+  <Card title="Development" icon="wrench" href="/development/architecture">
+    Build and contribute to Kanban
+  </Card>
+</CardGroup>

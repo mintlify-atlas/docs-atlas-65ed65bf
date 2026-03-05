@@ -1,0 +1,356 @@
+---
+title: Sprints
+description: Sprint planning, lifecycle, and story points tracking in Kanban CLI
+---
+
+## Overview
+
+Sprints are time-boxed iterations for organizing work. They help teams plan, execute, and track progress in focused periods. Sprints can be in different states and contain cards with story points for velocity tracking.
+
+## Sprint Structure
+
+Sprints are defined by the `Sprint` struct:
+
+```rust
+pub struct Sprint {
+    pub id: Uuid,
+    pub board_id: Uuid,
+    pub sprint_number: u32,
+    pub name_index: Option<usize>,
+    pub prefix: Option<String>,
+    pub card_prefix: Option<String>,
+    pub status: SprintStatus,
+    pub start_date: Option<DateTime<Utc>>,
+    pub end_date: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+```
+
+## Sprint Status
+
+Sprints progress through a defined lifecycle:
+
+```rust
+pub enum SprintStatus {
+    Planning,   // Sprint created but not started
+    Active,     // Sprint is currently running
+    Completed,  // Sprint finished successfully
+    Cancelled,  // Sprint was cancelled
+}
+```
+
+### Status Transitions
+
+<Steps>
+  <Step title="Planning">
+    Sprint is created. Cards can be assigned and planning happens.
+  </Step>
+  <Step title="Active">
+    Sprint starts. Work begins on assigned cards. Start and end dates are set.
+  </Step>
+  <Step title="Completed">
+    Sprint ends. Work is reviewed. Story points are tallied.
+  </Step>
+  <Step title="Cancelled" optional>
+    Sprint is abandoned. Cards can be moved to another sprint.
+  </Step>
+</Steps>
+
+## Creating Sprints
+
+```rust
+// Create a new sprint
+let sprint = Sprint::new(
+    board_id,
+    1,                           // sprint number
+    Some(0),                     // name index (optional)
+    Some("sprint".to_string())   // prefix override (optional)
+);
+
+assert_eq!(sprint.status, SprintStatus::Planning);
+assert!(sprint.start_date.is_none());
+```
+
+<Info>
+  Sprints start in `Planning` status with no dates set. They remain in planning until explicitly activated.
+</Info>
+
+## Sprint Names
+
+Sprints can have custom names stored in the board:
+
+```rust
+// Board maintains a list of sprint names
+board.sprint_names = vec![
+    "Foundation Sprint".to_string(),
+    "Core Features".to_string(),
+    "Polish & Launch".to_string(),
+];
+
+// Sprint references name by index
+let sprint = Sprint::new(board_id, 1, Some(0), None);
+let name = sprint.get_name(&board); // "Foundation Sprint"
+
+// Formatted name includes prefix and number
+let formatted = sprint.formatted_name(&board, "sprint");
+// Example: "sprint-1/Foundation Sprint"
+```
+
+## Sprint Prefixes
+
+Sprints support hierarchical prefix configuration:
+
+```rust
+// Sprint-level prefix override
+sprint.update_prefix(Some("v2".to_string()));
+
+// Board-level default
+board.update_sprint_prefix(Some("sprint".to_string()));
+
+// Effective prefix resolution
+let prefix = sprint.effective_sprint_prefix(&board, "default");
+// Returns: sprint prefix → board prefix → default
+```
+
+### Card Prefix Override
+
+Sprints can override card prefixes for all assigned cards:
+
+```rust
+// Set sprint's card prefix
+sprint.update_card_prefix(Some("hotfix".to_string()));
+
+// All cards in this sprint will use "hotfix" prefix
+let card_prefix = sprint.effective_card_prefix(&board, "task");
+// Returns: "hotfix"
+```
+
+<Tip>
+  Use sprint-level card prefixes for special sprint types (e.g., "hotfix" sprint, "mvp" sprint) to automatically categorize all work.
+</Tip>
+
+## Sprint Lifecycle
+
+### Activating a Sprint
+
+```rust
+let duration_days = 14; // 2-week sprint
+sprint.activate(duration_days);
+
+assert_eq!(sprint.status, SprintStatus::Active);
+assert!(sprint.start_date.is_some());
+assert!(sprint.end_date.is_some());
+
+// End date is automatically calculated
+let expected_end = start_date + Duration::days(14);
+assert_eq!(sprint.end_date, Some(expected_end));
+```
+
+<Note>
+  Only one sprint should be active per board at a time. The board's `active_sprint_id` tracks the current sprint.
+</Note>
+
+### Completing a Sprint
+
+```rust
+sprint.complete();
+assert_eq!(sprint.status, SprintStatus::Completed);
+
+// Typically followed by:
+// 1. Review completed cards
+// 2. Calculate velocity (story points)
+// 3. Move incomplete cards to next sprint
+// 4. Create retrospective notes
+```
+
+### Cancelling a Sprint
+
+```rust
+sprint.cancel();
+assert_eq!(sprint.status, SprintStatus::Cancelled);
+
+// Handle assigned cards:
+// - Move to backlog
+// - Reassign to new sprint
+// - Update sprint logs
+```
+
+## Assigning Cards to Sprints
+
+Cards track their sprint membership:
+
+```rust
+// Assign card to sprint
+card.assign_to_sprint(
+    sprint.id,
+    sprint.sprint_number,
+    sprint.get_name(&board).map(String::from),
+    format!("{:?}", sprint.status)
+);
+
+// Card now belongs to sprint
+assert_eq!(card.sprint_id, Some(sprint.id));
+
+// Sprint log entry created
+assert_eq!(card.sprint_logs.len(), 1);
+```
+
+<Warning>
+  Re-assigning a card to the same sprint doesn't create duplicate log entries. Sprint logs only track actual sprint changes.
+</Warning>
+
+## Sprint Log History
+
+Cards maintain a complete history of sprint assignments:
+
+```rust
+// View all sprints a card has been part of
+for log in card.get_sprint_history() {
+    println!("Sprint {}: {} → {}",
+        log.sprint_number,
+        log.started_at,
+        log.ended_at.map(|d| format!("{}", d))
+            .unwrap_or("ongoing".to_string())
+    );
+}
+
+// End the current sprint log when moving cards
+card.end_current_sprint_log();
+```
+
+## Story Points Tracking
+
+Sprints aggregate story points from assigned cards:
+
+```rust
+// Calculate total points in sprint
+let total_points: u32 = cards
+    .iter()
+    .filter(|c| c.sprint_id == Some(sprint.id))
+    .filter_map(|c| c.points.map(|p| p as u32))
+    .sum();
+
+// Calculate completed points
+let completed_points: u32 = cards
+    .iter()
+    .filter(|c| c.sprint_id == Some(sprint.id))
+    .filter(|c| c.is_completed())
+    .filter_map(|c| c.points.map(|p| p as u32))
+    .sum();
+
+let completion_rate = (completed_points as f64 / total_points as f64) * 100.0;
+println!("Sprint completion: {:.1}%", completion_rate);
+```
+
+<Info>
+  Story points help track velocity: the average points completed per sprint. This improves planning accuracy over time.
+</Info>
+
+## Sprint Filtering
+
+Filter cards by sprint assignment:
+
+```rust
+// Get all assignable sprints (not completed/cancelled)
+let assignable = Sprint::assignable(&sprints, board_id);
+
+// Filter cards by sprint
+let sprint_cards: Vec<&Card> = cards
+    .iter()
+    .filter(|c| c.sprint_id == Some(sprint.id))
+    .collect();
+```
+
+## Sprint Duration
+
+Boards can store a default sprint duration:
+
+```rust
+// Set board-level default
+board.sprint_duration_days = Some(14); // 2 weeks
+
+// Use when activating sprint
+if let Some(duration) = board.sprint_duration_days {
+    sprint.activate(duration);
+}
+```
+
+## Sprint Numbering
+
+Sprints use auto-incrementing numbers per prefix:
+
+```rust
+// Get next sprint number for a prefix
+let number = board.get_next_sprint_number("sprint");
+// Returns 1, then 2, then 3, etc.
+
+// Multiple prefixes have independent sequences
+board.get_next_sprint_number("release"); // Returns 1
+board.get_next_sprint_number("sprint");  // Returns 2
+```
+
+## Checking Sprint Status
+
+```rust
+// Check if sprint has ended
+if sprint.is_ended() {
+    println!("Sprint ended on {:?}", sprint.end_date);
+}
+
+// Only returns true for Active sprints past their end_date
+assert_eq!(sprint.status, SprintStatus::Active);
+assert!(Utc::now() > sprint.end_date.unwrap());
+```
+
+## Sprint Planning Workflow
+
+<Steps>
+  <Step title="Create Sprint">
+    ```rust
+    let sprint = Sprint::new(board_id, 1, Some(0), None);
+    ```
+  </Step>
+  
+  <Step title="Assign Cards">
+    ```rust
+    for card in backlog_cards {
+        card.assign_to_sprint(sprint.id, sprint.sprint_number, None, "Planning".to_string());
+    }
+    ```
+  </Step>
+  
+  <Step title="Activate Sprint">
+    ```rust
+    sprint.activate(14); // 2 weeks
+    board.active_sprint_id = Some(sprint.id);
+    ```
+  </Step>
+  
+  <Step title="Complete Sprint">
+    ```rust
+    sprint.complete();
+    board.active_sprint_id = None;
+    
+    // Move incomplete cards to next sprint
+    for card in cards.iter().filter(|c| !c.is_completed()) {
+        card.end_current_sprint_log();
+        card.assign_to_sprint(next_sprint.id, next_sprint.sprint_number, None, "Active".to_string());
+    }
+    ```
+  </Step>
+</Steps>
+
+## Related Concepts
+
+<CardGroup cols={2}>
+  <Card title="Cards" icon="rectangle-history" href="/concepts/cards">
+    Learn about card assignment and story points
+  </Card>
+  <Card title="Boards and Columns" icon="table-columns" href="/concepts/boards-and-columns">
+    Understand board-level sprint configuration
+  </Card>
+  <Card title="Undo/Redo" icon="rotate-left" href="/concepts/undo-redo">
+    Revert sprint operations
+  </Card>
+</CardGroup>

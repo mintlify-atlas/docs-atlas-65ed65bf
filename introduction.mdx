@@ -1,0 +1,113 @@
+---
+title: Introduction
+description: A fast, keyboard-driven terminal-based kanban tool for agile project management
+---
+
+# Introduction to Kanban CLI
+
+Kanban is a **fast, keyboard-driven kanban tool** built with Rust for managing projects directly from your terminal. Inspired by [lazygit](https://github.com/jesseduffield/lazygit) and powered by [ratatui](https://ratatui.rs), it provides a modern TUI (Terminal User Interface) for agile project management.
+
+![Kanban Demo](demo.gif)
+
+## What is Kanban?
+
+Kanban is a terminal-based project management solution that brings the visual simplicity of kanban boards to your command line. It combines the efficiency of keyboard-driven interfaces with rich project management features, allowing you to manage boards, cards, sprints, and workflows without leaving your terminal.
+
+## Key Features
+
+### Core Functionality
+
+<CardGroup cols={2}>
+  <Card title="Board Management" icon="table-columns">
+    Create, edit, and organize multiple boards with custom workflows
+  </Card>
+  <Card title="Custom Columns" icon="columns">
+    Define your own columns to match your workflow (Todo, In Progress, Blocked, Done)
+  </Card>
+  <Card title="Rich Cards" icon="note-sticky">
+    Cards with metadata including priority, story points, due dates, and more
+  </Card>
+  <Card title="Card Dependencies" icon="diagram-project">
+    Parent-child and blocking relationships between cards
+  </Card>
+</CardGroup>
+
+### Productivity Features
+
+- **Keyboard-Driven**: Vim-like navigation with hjkl and context-aware shortcuts
+- **Search**: Find cards instantly with vim-style `/` search
+- **Undo / Redo**: Undo (`u`) and redo (`U`) any action
+- **Multiple Views**: Switch between flat list, grouped by column, or kanban board layout with `V`
+- **External Editor**: Edit in your preferred editor (emacs, nano, vim, etc.)
+
+### Organization Tools
+
+- **Sprint Planning**: Plan, start and complete sprints
+- **Story Points**: Assign 1-5 point estimates with color-coded display
+- **Sorting**: Sort cards by points, priority, date, status, or position
+- **Filtering**: Filter by sprint, status, or search results
+- **Card Archiving**: Archive and restore tasks
+- **Metadata**: Organize with due dates, priority levels, and timestamps
+
+## Use Cases
+
+<AccordionGroup>
+  <Accordion title="Agile Development Teams">
+    Perfect for software teams practicing agile methodologies. Track sprints, estimate story points, manage dependencies, and visualize workflow in a lightweight terminal interface.
+  </Accordion>
+
+  <Accordion title="Personal Productivity">
+    Manage personal tasks and projects with a fast, distraction-free interface. No need for heavy web applications or complex setup—just launch and start organizing.
+  </Accordion>
+
+  <Accordion title="Scripting and Automation">
+    Use the CLI interface to automate project management tasks. All commands output JSON, making it easy to integrate with scripts, CI/CD pipelines, or other tools.
+  </Accordion>
+
+  <Accordion title="Remote Server Management">
+    Manage projects directly on remote servers via SSH without needing a web interface or GUI.
+  </Accordion>
+</AccordionGroup>
+
+## Architecture Highlights
+
+Kanban is built with Rust for speed and reliability:
+
+```
+crates/
+├── kanban-core        → Shared traits, error handling & reusable state primitives
+├── kanban-domain      → Domain models, business logic, filtering & sorting
+├── kanban-persistence → JSON storage, versioning & migrations
+├── kanban-tui         → Terminal UI with ratatui
+├── kanban-cli         → CLI entry point
+└── kanban-mcp         → Model Context Protocol server for LLM integration
+```
+
+<Note>
+**Design Principles**: Command Pattern for all mutations, immediate saving, format versioning with automatic migrations, and multi-instance support with last-write-wins conflict resolution.
+</Note>
+
+## Data Persistence
+
+- **Format**: JSON-based import/export
+- **Automatic Migration**: V1 data files are automatically upgraded to V2 format on load with backup creation
+- **Multi-Instance Support**: Real-time file watching detects changes from other running instances
+- **Atomic Writes**: Crash-safe write pattern (temp file → atomic rename) prevents data corruption
+- **Rich Metadata**: Timestamps, priority levels, story points, custom tags
+
+## Next Steps
+
+Ready to get started? Follow these guides:
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install Kanban using cargo, nix, or from source
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Learn the basics and create your first board
+  </Card>
+</CardGroup>
+
+## License
+
+Kanban is open source software licensed under Apache 2.0.

@@ -1,0 +1,337 @@
+---
+title: Keyboard Shortcuts
+description: Complete reference of all keyboard bindings organized by context
+---
+
+## Overview
+
+Kanban uses context-aware keyboard shortcuts inspired by Vim. The available bindings change based on your current view (normal mode, card detail, board detail, etc.).
+
+<Tip>
+Press `?` at any time to see all available shortcuts for your current context.
+</Tip>
+
+## Global Shortcuts
+
+These shortcuts work in most contexts:
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `?` | Help | Show context-sensitive help menu |
+| `q` | Quit | Exit current view or quit application |
+| `u` | Undo | Undo last action |
+| `U` | Redo | Redo last undone action |
+| `Esc` | Escape | Cancel dialog or clear selection |
+
+## Normal Mode - Projects Panel
+
+When focused on the board list:
+
+### Navigation
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `j` / `↓` | Down | Move down in list |
+| `k` / `↑` | Up | Move up in list |
+| `gg` | Jump to Top | Jump to first board |
+| `G` | Jump to Bottom | Jump to last board |
+| `Enter` / `Space` | Select | Open board detail view |
+
+### Board Management
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `n` | New | Create new board |
+| `r` | Rename | Rename selected board |
+| `e` | Edit | Edit board details |
+| `x` | Export | Export selected board to JSON |
+| `X` | Export All | Export all boards to JSON |
+| `i` | Import | Import board from JSON file |
+
+### Panel Switching
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `1` | Panel 1 | Focus projects panel |
+| `2` | Panel 2 | Focus tasks panel |
+
+## Normal Mode - Cards Panel
+
+When focused on the card list:
+
+### Navigation
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `j` / `↓` | Down | Move down in list |
+| `k` / `↑` | Up | Move up in list |
+| `h` | Previous Column | Move to previous column (grouped/kanban view) |
+| `l` | Next Column | Move to next column (grouped/kanban view) |
+| `gg` | Jump to Top | Jump to first card |
+| `G` | Jump to Bottom | Jump to last card |
+| `{` | Half Viewport Up | Jump half viewport up |
+| `}` | Half Viewport Down | Jump half viewport down |
+| `Enter` / `Space` | Select | Open card detail view |
+
+### Card Management
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `n` | New | Create new card |
+| `e` | Edit | Edit selected card |
+| `c` | Complete | Toggle card completion status |
+| `d` | Archive | Archive selected card(s) |
+| `D` | Archived View | View archived cards |
+| `p` | Priority | Set card priority |
+| `s` | Children | Manage child cards (dependencies) |
+
+### Card Movement
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `H` | Move Left | Move card to left column |
+| `L` | Move Right | Move card to right column |
+
+### Selection and Bulk Operations
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `v` | Toggle Selection | Select card for bulk operation |
+| `Ctrl+a` | Select All | Select all visible cards |
+| `Esc` | Clear Selection | Clear all selections |
+| `P` | Set Priority | Set priority for all selected cards |
+
+### Sprint Management
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `a` | Assign to Sprint | Assign card(s) to sprint |
+| `t` | Filter Sprint | Toggle sprint filter |
+| `T` | Filter Options | Open filter options dialog |
+
+### Sorting and Filtering
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `o` | Sort | Sort cards by field (priority, points, date, status, position) |
+| `O` | Toggle Order | Toggle sort order (ascending/descending) |
+| `/` | Search | Activate search mode |
+| `V` | Toggle View | Switch between flat, grouped, and kanban views |
+
+### Panel Switching
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `1` | Panel 1 | Focus projects panel |
+| `2` | Panel 2 | Focus tasks panel |
+
+## Card Detail View
+
+When viewing a card's details:
+
+### Panel Navigation
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `1` | Title Panel | Focus card title |
+| `2` | Metadata Panel | Focus metadata (priority, points, due date) |
+| `3` | Description Panel | Focus description |
+| `4` | Parents Panel | Focus parent cards |
+| `5` | Children Panel | Focus child cards |
+| `q` / `Esc` | Back | Return to card list |
+
+### Card Operations
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `e` | Edit | Edit current panel content |
+| `d` | Delete | Delete this card |
+| `a` | Assign | Assign card to sprint |
+| `r` | Manage Parents | Set parent card dependencies |
+| `R` | Manage Children | Set child card dependencies |
+
+### Clipboard
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `y` | Copy Branch | Copy branch name to clipboard |
+| `Y` | Copy Checkout | Copy git checkout command |
+
+## Board Detail View
+
+When viewing board details:
+
+### Panel Navigation
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `1` | Name Panel | Focus board name |
+| `2` | Description Panel | Focus description |
+| `3` | Settings Panel | Focus settings |
+| `4` | Sprints Panel | Focus sprints list |
+| `5` | Columns Panel | Focus columns list |
+| `q` / `Esc` | Back | Return to board list |
+
+### Board Operations
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `e` | Edit | Edit current panel |
+| `p` | Set Prefix | Set branch prefix |
+
+### Sprint Management (Panel 4)
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `n` | New Sprint | Create new sprint |
+| `j` / `↓` | Down | Navigate down in sprint list |
+| `k` / `↑` | Up | Navigate up in sprint list |
+| `Enter` / `Space` | Open | Open sprint detail view |
+
+### Column Management (Panel 5)
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `n` | New Column | Create new column |
+| `r` | Rename | Rename selected column |
+| `d` | Delete | Delete selected column |
+| `j` / `↓` | Down | Navigate down in column list |
+| `k` / `↑` | Up | Navigate up in column list |
+| `J` | Move Down | Reorder column down (increase position) |
+| `K` | Move Up | Reorder column up (decrease position) |
+
+## Sprint Detail View
+
+When viewing sprint details:
+
+### Navigation
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `h` | Left Panel | Switch to uncompleted tasks panel |
+| `l` | Right Panel | Switch to completed tasks panel |
+| `j` / `↓` | Down | Navigate down in task list |
+| `k` / `↑` | Up | Navigate up in task list |
+| `q` / `Esc` | Back | Return to board detail |
+
+### Sprint Operations
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `a` | Activate | Activate this sprint |
+| `c` | Complete | Complete this sprint |
+| `p` | Sprint Prefix | Set sprint prefix |
+| `C` | Card Prefix | Set card prefix override for this sprint |
+
+### Task Management
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `n` | New | Create new task |
+| `e` | Edit | Edit selected task |
+| `v` | Select | Select task for bulk operation |
+| `s` | Assign | Assign task to sprint |
+| `o` | Sort | Sort tasks by field |
+| `O` | Toggle Order | Toggle sort order |
+
+### Clipboard
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `y` | Copy Branch | Copy branch name to clipboard |
+| `Y` | Copy Checkout | Copy git checkout command |
+
+## Archived Cards View
+
+When viewing archived cards:
+
+### Navigation
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `j` / `↓` | Down | Navigate down in list |
+| `k` / `↑` | Up | Navigate up in list |
+| `h` | Previous Column | Move to previous column |
+| `l` | Next Column | Move to next column |
+| `gg` | Jump to Top | Jump to first card |
+| `G` | Jump to Bottom | Jump to last card |
+| `{` | Half Viewport Up | Jump half viewport up |
+| `}` | Half Viewport Down | Jump half viewport down |
+| `q` / `Esc` | Back | Return to normal view |
+
+### Archived Card Operations
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `r` | Restore | Restore selected card(s) to board |
+| `x` | Delete | Permanently delete selected card(s) |
+| `v` | Select | Select card for bulk operation |
+| `V` | Toggle View | Switch between flat, grouped, and kanban views |
+
+## Search Mode
+
+When search is active (press `/` to activate):
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `[a-z0-9]` | Type | Add character to search query |
+| `Backspace` | Delete | Remove last character |
+| `Enter` | Apply | Apply search and return to normal mode |
+| `Esc` | Cancel | Clear search and return to normal mode |
+
+## Dialog Modes
+
+When dialogs are open:
+
+### Text Input Dialogs
+
+(Create Board, Create Card, Rename, Set Prefix, etc.)
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `[a-z0-9]` | Type | Enter text |
+| `Backspace` | Delete | Remove last character |
+| `Enter` | Confirm | Submit and close dialog |
+| `Esc` | Cancel | Close dialog without saving |
+
+### Selection Dialogs
+
+(Priority, Sort, Filter, Task List View)
+
+| Key | Action | Description |
+|-----|--------|-------------|
+| `j` / `↓` | Down | Move down in list |
+| `k` / `↑` | Up | Move up in list |
+| `Enter` | Select | Choose option and close dialog |
+| `Esc` | Cancel | Close dialog without selecting |
+
+## Tips and Tricks
+
+<CardGroup cols={2}>
+  <Card title="Vim-style Navigation" icon="keyboard">
+    Use `gg` to jump to top and `G` to jump to bottom, just like Vim.
+  </Card>
+  <Card title="Quick Panel Switching" icon="arrows-left-right-to-line">
+    Press number keys `1-9` to instantly jump between panels without using arrow keys.
+  </Card>
+  <Card title="Bulk Operations" icon="list-check">
+    Use `v` to select multiple cards, then apply operations like archive, move, or priority changes to all selected cards at once.
+  </Card>
+  <Card title="Context Help" icon="circle-question">
+    Forgot a shortcut? Press `?` to see all available commands for your current context.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="TUI Guide" icon="terminal" href="/guide/tui">
+    Learn the terminal interface
+  </Card>
+  <Card title="View Modes" icon="table-cells" href="/guide/views">
+    Understand different view layouts
+  </Card>
+  <Card title="CLI Mode" icon="code" href="/guide/cli">
+    Automate with CLI commands
+  </Card>
+</CardGroup>

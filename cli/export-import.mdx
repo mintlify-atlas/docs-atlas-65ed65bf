@@ -1,0 +1,297 @@
+---
+title: Export & Import
+description: Export and import kanban data for backup and migration
+---
+
+## Overview
+
+The export and import commands allow you to back up your kanban data to JSON files and restore it later. This is useful for:
+
+- Creating backups of your boards
+- Migrating data between systems
+- Sharing board templates with teams
+- Version controlling your kanban data
+
+## Export Command
+
+Export board data to JSON format:
+
+```bash
+kanban export [--board-id <BOARD_ID>]
+```
+
+<ParamField path="--board-id" type="uuid">
+  Optional board ID to export. If not specified, exports all boards and their data.
+</ParamField>
+
+### Export All Boards
+
+Export all boards, columns, cards, and sprints:
+
+```bash
+kanban export > backup.json
+```
+
+### Export a Specific Board
+
+Export only a specific board and its related data:
+
+```bash
+kanban export --board-id 550e8400-e29b-41d4-a716-446655440000 > project-backup.json
+```
+
+### Example Output
+
+The exported JSON contains all board data:
+
+```json
+{
+  "boards": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "My Project",
+      "card_prefix": "PROJ",
+      "description": "Project board",
+      "sprint_prefix": "SP",
+      "created_at": "2024-03-05T12:00:00Z",
+      "updated_at": "2024-03-05T12:00:00Z"
+    }
+  ],
+  "columns": [
+    {
+      "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "board_id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Todo",
+      "position": 0,
+      "wip_limit": null,
+      "created_at": "2024-03-05T12:00:00Z",
+      "updated_at": "2024-03-05T12:00:00Z"
+    }
+  ],
+  "cards": [
+    {
+      "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "board_id": "550e8400-e29b-41d4-a716-446655440000",
+      "column_id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      "title": "Implement feature",
+      "description": "Add new functionality",
+      "priority": "high",
+      "status": "todo",
+      "points": 5,
+      "position": 0,
+      "sprint_id": null,
+      "due_date": null,
+      "archived": false,
+      "created_at": "2024-03-05T12:00:00Z",
+      "updated_at": "2024-03-05T12:00:00Z"
+    }
+  ],
+  "sprints": [
+    {
+      "id": "8d0e7680-8536-41ef-a945-f17fc1f90ae8",
+      "board_id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Sprint 1",
+      "prefix": "SP",
+      "status": "active",
+      "start_date": "2024-03-01",
+      "end_date": "2024-03-14",
+      "created_at": "2024-03-05T12:00:00Z",
+      "updated_at": "2024-03-05T12:00:00Z"
+    }
+  ]
+}
+```
+
+## Import Command
+
+Import board data from a JSON file:
+
+```bash
+kanban import --file <FILE>
+```
+
+<ParamField path="--file" type="string" required>
+  Path to the JSON file to import.
+</ParamField>
+
+### Import from File
+
+```bash
+kanban import --file backup.json
+```
+
+<Note>
+  The import command will merge the data with existing boards. If there are UUID conflicts, the import may fail.
+</Note>
+
+### Import to a New Kanban File
+
+Import data to a fresh kanban file:
+
+```bash
+kanban --file ~/new-kanban.json import --file backup.json
+```
+
+## JSON Format Specification
+
+The export/import JSON format follows this structure:
+
+```json
+{
+  "boards": [<Board>],
+  "columns": [<Column>],
+  "cards": [<Card>],
+  "sprints": [<Sprint>]
+}
+```
+
+Each entity includes all fields as shown in the example output above.
+
+### Required Fields
+
+- All `id` fields must be valid UUIDs
+- Foreign keys (`board_id`, `column_id`, `sprint_id`) must reference existing entities
+- Dates must be in ISO 8601 format
+- Positions must be non-negative integers
+
+## Use Cases
+
+### Daily Backups
+
+Create automated daily backups:
+
+```bash
+#!/bin/bash
+BACKUP_DIR=~/kanban-backups
+DATE=$(date +%Y-%m-%d)
+mkdir -p $BACKUP_DIR
+
+kanban export > "$BACKUP_DIR/kanban-$DATE.json"
+
+# Keep only last 30 days
+find $BACKUP_DIR -name "kanban-*.json" -mtime +30 -delete
+```
+
+### Template Creation
+
+Create a board template to share with teams:
+
+```bash
+# Export a template board
+kanban export --board-id $TEMPLATE_BOARD_ID > team-template.json
+
+# Share the template file
+# Team members can import it:
+kanban import --file team-template.json
+```
+
+### Migration Between Systems
+
+```bash
+# On old system
+kanban --file ~/old-kanban.json export > migration.json
+
+# Transfer migration.json to new system
+
+# On new system
+kanban --file ~/new-kanban.json import --file migration.json
+```
+
+### Version Control
+
+Track kanban data in git:
+
+```bash
+#!/bin/bash
+REPO_DIR=~/kanban-repo
+cd $REPO_DIR
+
+# Export current state
+kanban export > kanban-data.json
+
+# Commit if changed
+if ! git diff --quiet kanban-data.json; then
+  git add kanban-data.json
+  git commit -m "Update kanban data $(date +%Y-%m-%d)"
+  git push
+fi
+```
+
+### Selective Board Backup
+
+```bash
+# Export each board separately
+kanban board list | jq -r '.[] | .id' | while read board_id; do
+  board_name=$(kanban board get $board_id | jq -r '.name' | tr ' ' '-')
+  kanban export --board-id $board_id > "backup-$board_name.json"
+done
+```
+
+### Merge Multiple Exports
+
+Combine multiple exported files:
+
+```bash
+# Merge exported JSON files
+jq -s '{boards: [.[].boards[]], columns: [.[].columns[]], cards: [.[].cards[]], sprints: [.[].sprints[]]}' \
+  backup1.json backup2.json backup3.json > merged-backup.json
+
+# Import merged data
+kanban import --file merged-backup.json
+```
+
+### Data Transformation
+
+Transform exported data before importing:
+
+```bash
+# Export
+kanban export > original.json
+
+# Transform (e.g., change all priorities)
+jq '(.cards[].priority) |= if . == "high" then "critical" else . end' \
+  original.json > transformed.json
+
+# Import to new file
+kanban --file ~/transformed-kanban.json import --file transformed.json
+```
+
+## Best Practices
+
+### Regular Backups
+
+- Export data regularly (daily or weekly)
+- Store backups in multiple locations
+- Test restore procedures periodically
+
+### File Naming
+
+Use descriptive names with timestamps:
+
+```bash
+kanban export > "kanban-backup-$(date +%Y%m%d-%H%M%S).json"
+```
+
+### Validation
+
+Validate exported data before archiving:
+
+```bash
+# Check JSON is valid
+kanban export | jq empty && echo "Valid JSON" || echo "Invalid JSON"
+
+# Check required fields
+kanban export | jq '.boards, .columns, .cards, .sprints' > /dev/null
+```
+
+### Compression
+
+Compress large exports:
+
+```bash
+# Compress
+kanban export | gzip > kanban-backup.json.gz
+
+# Decompress and import
+zcat kanban-backup.json.gz | kanban import --file /dev/stdin
+```

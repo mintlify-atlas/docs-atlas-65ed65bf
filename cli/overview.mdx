@@ -1,0 +1,110 @@
+---
+title: CLI Overview
+description: Command-line interface for the Kanban CLI tool
+---
+
+## Overview
+
+The Kanban CLI provides a comprehensive command-line interface for managing kanban boards, cards, columns, and sprints. All commands output JSON for easy integration with scripts and automation tools.
+
+## Basic Usage
+
+```bash
+kanban [OPTIONS] <COMMAND>
+```
+
+## Global Options
+
+<ParamField path="--file" type="string" default="$KANBAN_FILE">
+  Path to the kanban data file. Can also be set via the `KANBAN_FILE` environment variable.
+</ParamField>
+
+<ParamField path="--help" type="flag">
+  Display help information for any command.
+</ParamField>
+
+<ParamField path="--version" type="flag">
+  Display version information including git commit hash.
+</ParamField>
+
+## Environment Variables
+
+### KANBAN_FILE
+
+Set the default path to your kanban data file:
+
+```bash
+export KANBAN_FILE=~/.config/kanban/data.json
+kanban board list
+```
+
+This avoids having to specify `--file` on every command.
+
+## JSON Output Format
+
+All commands output JSON for easy parsing and automation. Example:
+
+```bash
+kanban board list | jq '.[] | .name'
+```
+
+## Shell Completions
+
+Generate shell completions for your preferred shell:
+
+```bash
+# Bash
+kanban completions bash > ~/.local/share/bash-completion/completions/kanban
+
+# Zsh
+kanban completions zsh > ~/.zfunc/_kanban
+
+# Fish
+kanban completions fish > ~/.config/fish/completions/kanban.fish
+
+# PowerShell
+kanban completions powershell > $PROFILE
+```
+
+Supported shells: `bash`, `zsh`, `fish`, `powershell`, `elvish`
+
+## Available Commands
+
+- [board](/cli/board) - Board operations (create, list, get, update, delete)
+- [card](/cli/card) - Card operations (create, list, move, archive, sprint management)
+- [column](/cli/column) - Column operations (create, list, update, reorder)
+- [sprint](/cli/sprint) - Sprint operations (create, activate, complete, cancel)
+- [export](/cli/export-import) - Export board data to JSON
+- [import](/cli/export-import) - Import board data from JSON
+- `completions` - Generate shell completions
+
+## Examples
+
+### Basic Workflow
+
+```bash
+# Create a board
+kanban board create --name "My Project" --card-prefix "PROJ"
+
+# Create columns
+kanban column create --board-id <BOARD_ID> --name "Todo" --position 0
+kanban column create --board-id <BOARD_ID> --name "In Progress" --position 1
+kanban column create --board-id <BOARD_ID> --name "Done" --position 2
+
+# Create a card
+kanban card create --board-id <BOARD_ID> --column-id <COLUMN_ID> \
+  --title "Implement feature" --priority "high" --points 5
+
+# Move card to next column
+kanban card move <CARD_ID> --column-id <NEW_COLUMN_ID>
+```
+
+### Using with jq
+
+```bash
+# Get all high priority cards
+kanban card list --board-id <BOARD_ID> | jq '.[] | select(.priority == "high")'
+
+# Count cards per column
+kanban card list --board-id <BOARD_ID> | jq 'group_by(.column_id) | map({column: .[0].column_id, count: length})'
+```
