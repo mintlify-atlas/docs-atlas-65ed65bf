@@ -1,0 +1,129 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Kanban",
+  "projectDescription": "A fast, keyboard-driven terminal kanban tool for agile project management",
+  "theme": "aspen",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "User Guide",
+            "pages": [
+              "guide/tui",
+              "guide/cli",
+              "guide/keyboard-shortcuts",
+              "guide/views"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/boards-and-columns",
+              "concepts/cards",
+              "concepts/sprints",
+              "concepts/dependencies",
+              "concepts/undo-redo"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/mcp-server",
+              "advanced/configuration",
+              "advanced/persistence",
+              "advanced/multi-instance"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/architecture",
+              "development/contributing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/overview",
+              "cli/board",
+              "cli/card",
+              "cli/column",
+              "cli/sprint",
+              "cli/export-import"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Keyboard-driven vim-like navigation with hjkl movement",
+    "Rich terminal UI with multiple view modes (flat list, grouped, kanban board)",
+    "Complete CLI interface for scripting and automation",
+    "Sprint planning with story points and card assignments",
+    "Card dependencies with parent-child and blocking relationships",
+    "Undo/Redo support for all actions",
+    "Real-time search and filtering capabilities",
+    "MCP server for LLM integration (Claude, Cursor, etc.)",
+    "Automatic JSON persistence with format migrations",
+    "Multi-instance support with conflict detection"
+  ],
+  "publicApiSurface": [
+    "kanban (launch TUI)",
+    "kanban board create --name <NAME>",
+    "kanban board list",
+    "kanban board get <ID>",
+    "kanban board update <ID> [--name <NAME>]",
+    "kanban board delete <ID>",
+    "kanban column create --board-id <ID> --name <NAME>",
+    "kanban column list --board-id <ID>",
+    "kanban column get <ID>",
+    "kanban column update <ID> [--name <NAME>] [--wip-limit <N>]",
+    "kanban column delete <ID>",
+    "kanban column reorder <ID> --position <N>",
+    "kanban card create --board-id <ID> --column-id <ID> --title <TITLE>",
+    "kanban card list [--board-id <ID>] [--column-id <ID>] [--sprint-id <ID>]",
+    "kanban card get <ID>",
+    "kanban card update <ID> [--title <TITLE>] [--priority <PRIORITY>] [--status <STATUS>]",
+    "kanban card move <ID> --column-id <ID>",
+    "kanban card archive <ID>",
+    "kanban card restore <ID>",
+    "kanban card delete <ID>",
+    "kanban card assign-sprint <ID> --sprint-id <ID>",
+    "kanban card unassign-sprint <ID>",
+    "kanban card branch-name <ID>",
+    "kanban card git-checkout <ID>",
+    "kanban card bulk-archive --ids <ID1,ID2,...>",
+    "kanban card bulk-move --ids <ID1,ID2,...> --column-id <ID>",
+    "kanban card bulk-assign-sprint --ids <ID1,ID2,...> --sprint-id <ID>",
+    "kanban sprint create --board-id <ID>",
+    "kanban sprint list --board-id <ID>",
+    "kanban sprint get <ID>",
+    "kanban sprint update <ID> [--name <NAME>]",
+    "kanban sprint activate <ID>",
+    "kanban sprint complete <ID>",
+    "kanban sprint cancel <ID>",
+    "kanban sprint delete <ID>",
+    "kanban export [--board-id <ID>]",
+    "kanban import --file <FILE>",
+    "kanban completions <SHELL>"
+  ]
+}
